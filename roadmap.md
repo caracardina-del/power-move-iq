@@ -4,5 +4,5 @@
 - [x] Seed 90 original Daily Moves and weekly lenses
 - [x] Build shared editorial shell and navigation
 - [x] Build all requested routes and core interactions
-- [ ] Validate desktop/mobile UI and diagnostics
+- [x] Validate desktop/mobile UI and diagnostics
 - [ ] Leave payment activation as the only external blocker
