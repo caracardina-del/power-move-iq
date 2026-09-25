@@ -14,16 +14,274 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      analyses: {
+        Row: {
+          chosen_move: string | null
+          context: Json
+          created_at: string
+          id: string
+          is_saved: boolean
+          result: Json
+          situation: string
+          status: Database["public"]["Enums"]["analysis_status"]
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          chosen_move?: string | null
+          context?: Json
+          created_at?: string
+          id?: string
+          is_saved?: boolean
+          result?: Json
+          situation: string
+          status?: Database["public"]["Enums"]["analysis_status"]
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          chosen_move?: string | null
+          context?: Json
+          created_at?: string
+          id?: string
+          is_saved?: boolean
+          result?: Json
+          situation?: string
+          status?: Database["public"]["Enums"]["analysis_status"]
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      favorite_moves: {
+        Row: {
+          created_at: string
+          move_id: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          move_id: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          move_id?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "favorite_moves_move_id_fkey"
+            columns: ["move_id"]
+            isOneToOne: false
+            referencedRelation: "moves"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      moves: {
+        Row: {
+          action_prompt: string
+          category: string
+          created_at: string
+          field_note: string
+          id: number
+          is_pro: boolean
+          move_number: number
+          principle: string
+          title: string
+        }
+        Insert: {
+          action_prompt: string
+          category: string
+          created_at?: string
+          field_note: string
+          id?: number
+          is_pro?: boolean
+          move_number: number
+          principle: string
+          title: string
+        }
+        Update: {
+          action_prompt?: string
+          category?: string
+          created_at?: string
+          field_note?: string
+          id?: number
+          is_pro?: boolean
+          move_number?: number
+          principle?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      outcomes: {
+        Row: {
+          analysis_id: string
+          chosen_move: string | null
+          id: string
+          outcome: Database["public"]["Enums"]["outcome_type"]
+          recorded_at: string
+          result_note: string
+          user_id: string
+        }
+        Insert: {
+          analysis_id: string
+          chosen_move?: string | null
+          id?: string
+          outcome: Database["public"]["Enums"]["outcome_type"]
+          recorded_at?: string
+          result_note?: string
+          user_id: string
+        }
+        Update: {
+          analysis_id?: string
+          chosen_move?: string | null
+          id?: string
+          outcome?: Database["public"]["Enums"]["outcome_type"]
+          recorded_at?: string
+          result_note?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "outcomes_analysis_id_fkey"
+            columns: ["analysis_id"]
+            isOneToOne: false
+            referencedRelation: "analyses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          display_name: string
+          email: string
+          id: string
+          preferences: Json
+          subscription_tier: Database["public"]["Enums"]["subscription_tier"]
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string
+          email?: string
+          id: string
+          preferences?: Json
+          subscription_tier?: Database["public"]["Enums"]["subscription_tier"]
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string
+          email?: string
+          id?: string
+          preferences?: Json
+          subscription_tier?: Database["public"]["Enums"]["subscription_tier"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      streaks: {
+        Row: {
+          current_streak: number
+          last_active_date: string | null
+          longest_streak: number
+          updated_at: string
+          user_id: string
+          viewed_move_numbers: number[]
+        }
+        Insert: {
+          current_streak?: number
+          last_active_date?: string | null
+          longest_streak?: number
+          updated_at?: string
+          user_id: string
+          viewed_move_numbers?: number[]
+        }
+        Update: {
+          current_streak?: number
+          last_active_date?: string | null
+          longest_streak?: number
+          updated_at?: string
+          user_id?: string
+          viewed_move_numbers?: number[]
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      weekly_lenses: {
+        Row: {
+          created_at: string
+          exercise: string
+          id: number
+          questions: Json
+          thesis: string
+          title: string
+          week_number: number
+        }
+        Insert: {
+          created_at?: string
+          exercise: string
+          id?: number
+          questions?: Json
+          thesis: string
+          title: string
+          week_number: number
+        }
+        Update: {
+          created_at?: string
+          exercise?: string
+          id?: number
+          questions?: Json
+          thesis?: string
+          title?: string
+          week_number?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      analysis_status: "draft" | "complete" | "archived"
+      app_role: "user" | "admin"
+      outcome_type: "accepted" | "negotiated" | "declined" | "ghosted" | "other"
+      subscription_tier: "free" | "pro"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +408,11 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      analysis_status: ["draft", "complete", "archived"],
+      app_role: ["user", "admin"],
+      outcome_type: ["accepted", "negotiated", "declined", "ghosted", "other"],
+      subscription_tier: ["free", "pro"],
+    },
   },
 } as const
