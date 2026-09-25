@@ -10,33 +10,128 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AnalyzeRouteImport } from './routes/analyze'
+import { Route as LibraryRouteImport } from './routes/library'
+import { Route as OutcomesRouteImport } from './routes/outcomes'
+import { Route as SavedRouteImport } from './routes/saved'
+import { Route as TodayRouteImport } from './routes/today'
+import { Route as WeeklyRouteImport } from './routes/weekly'
+import { Route as AnalysisCaseIdRouteImport } from './routes/analysis.$caseId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AnalyzeRoute = AnalyzeRouteImport.update({
+  id: '/analyze',
+  path: '/analyze',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LibraryRoute = LibraryRouteImport.update({
+  id: '/library',
+  path: '/library',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OutcomesRoute = OutcomesRouteImport.update({
+  id: '/outcomes',
+  path: '/outcomes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SavedRoute = SavedRouteImport.update({
+  id: '/saved',
+  path: '/saved',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TodayRoute = TodayRouteImport.update({
+  id: '/today',
+  path: '/today',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WeeklyRoute = WeeklyRouteImport.update({
+  id: '/weekly',
+  path: '/weekly',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AnalysisCaseIdRoute = AnalysisCaseIdRouteImport.update({
+  id: '/analysis/$caseId',
+  path: '/analysis/$caseId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/analyze': typeof AnalyzeRoute
+  '/library': typeof LibraryRoute
+  '/outcomes': typeof OutcomesRoute
+  '/saved': typeof SavedRoute
+  '/today': typeof TodayRoute
+  '/weekly': typeof WeeklyRoute
+  '/analysis/$caseId': typeof AnalysisCaseIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/analyze': typeof AnalyzeRoute
+  '/library': typeof LibraryRoute
+  '/outcomes': typeof OutcomesRoute
+  '/saved': typeof SavedRoute
+  '/today': typeof TodayRoute
+  '/weekly': typeof WeeklyRoute
+  '/analysis/$caseId': typeof AnalysisCaseIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/analyze': typeof AnalyzeRoute
+  '/library': typeof LibraryRoute
+  '/outcomes': typeof OutcomesRoute
+  '/saved': typeof SavedRoute
+  '/today': typeof TodayRoute
+  '/weekly': typeof WeeklyRoute
+  '/analysis/$caseId': typeof AnalysisCaseIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/analyze'
+    | '/library'
+    | '/outcomes'
+    | '/saved'
+    | '/today'
+    | '/weekly'
+    | '/analysis/$caseId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/analyze'
+    | '/library'
+    | '/outcomes'
+    | '/saved'
+    | '/today'
+    | '/weekly'
+    | '/analysis/$caseId'
+  id:
+    | '__root__'
+    | '/'
+    | '/analyze'
+    | '/library'
+    | '/outcomes'
+    | '/saved'
+    | '/today'
+    | '/weekly'
+    | '/analysis/$caseId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AnalyzeRoute: typeof AnalyzeRoute
+  LibraryRoute: typeof LibraryRoute
+  OutcomesRoute: typeof OutcomesRoute
+  SavedRoute: typeof SavedRoute
+  TodayRoute: typeof TodayRoute
+  WeeklyRoute: typeof WeeklyRoute
+  AnalysisCaseIdRoute: typeof AnalysisCaseIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +143,67 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/analyze': {
+      id: '/analyze'
+      path: '/analyze'
+      fullPath: '/analyze'
+      preLoaderRoute: typeof AnalyzeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/library': {
+      id: '/library'
+      path: '/library'
+      fullPath: '/library'
+      preLoaderRoute: typeof LibraryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/outcomes': {
+      id: '/outcomes'
+      path: '/outcomes'
+      fullPath: '/outcomes'
+      preLoaderRoute: typeof OutcomesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/saved': {
+      id: '/saved'
+      path: '/saved'
+      fullPath: '/saved'
+      preLoaderRoute: typeof SavedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/today': {
+      id: '/today'
+      path: '/today'
+      fullPath: '/today'
+      preLoaderRoute: typeof TodayRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/weekly': {
+      id: '/weekly'
+      path: '/weekly'
+      fullPath: '/weekly'
+      preLoaderRoute: typeof WeeklyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/analysis/$caseId': {
+      id: '/analysis/$caseId'
+      path: '/analysis/$caseId'
+      fullPath: '/analysis/$caseId'
+      preLoaderRoute: typeof AnalysisCaseIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AnalyzeRoute: AnalyzeRoute,
+  LibraryRoute: LibraryRoute,
+  OutcomesRoute: OutcomesRoute,
+  SavedRoute: SavedRoute,
+  TodayRoute: TodayRoute,
+  WeeklyRoute: WeeklyRoute,
+  AnalysisCaseIdRoute: AnalysisCaseIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
