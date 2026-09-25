@@ -10,33 +10,206 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AboutRouteImport } from './routes/about'
+import { Route as AccountRouteImport } from './routes/account'
+import { Route as AnalyzeRouteImport } from './routes/analyze'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as LibraryRouteImport } from './routes/library'
+import { Route as OutcomesRouteImport } from './routes/outcomes'
+import { Route as PricingRouteImport } from './routes/pricing'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as SavedRouteImport } from './routes/saved'
+import { Route as TermsRouteImport } from './routes/terms'
+import { Route as TodayRouteImport } from './routes/today'
+import { Route as WeeklyRouteImport } from './routes/weekly'
+import { Route as AnalysisCaseIdRouteImport } from './routes/analysis.$caseId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AboutRoute = AboutRouteImport.update({
+  id: '/about',
+  path: '/about',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AccountRoute = AccountRouteImport.update({
+  id: '/account',
+  path: '/account',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AnalyzeRoute = AnalyzeRouteImport.update({
+  id: '/analyze',
+  path: '/analyze',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LibraryRoute = LibraryRouteImport.update({
+  id: '/library',
+  path: '/library',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OutcomesRoute = OutcomesRouteImport.update({
+  id: '/outcomes',
+  path: '/outcomes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PricingRoute = PricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SavedRoute = SavedRouteImport.update({
+  id: '/saved',
+  path: '/saved',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TodayRoute = TodayRouteImport.update({
+  id: '/today',
+  path: '/today',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WeeklyRoute = WeeklyRouteImport.update({
+  id: '/weekly',
+  path: '/weekly',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AnalysisCaseIdRoute = AnalysisCaseIdRouteImport.update({
+  id: '/analysis/$caseId',
+  path: '/analysis/$caseId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/account': typeof AccountRoute
+  '/analyze': typeof AnalyzeRoute
+  '/auth': typeof AuthRoute
+  '/library': typeof LibraryRoute
+  '/outcomes': typeof OutcomesRoute
+  '/pricing': typeof PricingRoute
+  '/privacy': typeof PrivacyRoute
+  '/saved': typeof SavedRoute
+  '/terms': typeof TermsRoute
+  '/today': typeof TodayRoute
+  '/weekly': typeof WeeklyRoute
+  '/analysis/$caseId': typeof AnalysisCaseIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/account': typeof AccountRoute
+  '/analyze': typeof AnalyzeRoute
+  '/auth': typeof AuthRoute
+  '/library': typeof LibraryRoute
+  '/outcomes': typeof OutcomesRoute
+  '/pricing': typeof PricingRoute
+  '/privacy': typeof PrivacyRoute
+  '/saved': typeof SavedRoute
+  '/terms': typeof TermsRoute
+  '/today': typeof TodayRoute
+  '/weekly': typeof WeeklyRoute
+  '/analysis/$caseId': typeof AnalysisCaseIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/account': typeof AccountRoute
+  '/analyze': typeof AnalyzeRoute
+  '/auth': typeof AuthRoute
+  '/library': typeof LibraryRoute
+  '/outcomes': typeof OutcomesRoute
+  '/pricing': typeof PricingRoute
+  '/privacy': typeof PrivacyRoute
+  '/saved': typeof SavedRoute
+  '/terms': typeof TermsRoute
+  '/today': typeof TodayRoute
+  '/weekly': typeof WeeklyRoute
+  '/analysis/$caseId': typeof AnalysisCaseIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/about'
+    | '/account'
+    | '/analyze'
+    | '/auth'
+    | '/library'
+    | '/outcomes'
+    | '/pricing'
+    | '/privacy'
+    | '/saved'
+    | '/terms'
+    | '/today'
+    | '/weekly'
+    | '/analysis/$caseId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/about'
+    | '/account'
+    | '/analyze'
+    | '/auth'
+    | '/library'
+    | '/outcomes'
+    | '/pricing'
+    | '/privacy'
+    | '/saved'
+    | '/terms'
+    | '/today'
+    | '/weekly'
+    | '/analysis/$caseId'
+  id:
+    | '__root__'
+    | '/'
+    | '/about'
+    | '/account'
+    | '/analyze'
+    | '/auth'
+    | '/library'
+    | '/outcomes'
+    | '/pricing'
+    | '/privacy'
+    | '/saved'
+    | '/terms'
+    | '/today'
+    | '/weekly'
+    | '/analysis/$caseId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AboutRoute: typeof AboutRoute
+  AccountRoute: typeof AccountRoute
+  AnalyzeRoute: typeof AnalyzeRoute
+  AuthRoute: typeof AuthRoute
+  LibraryRoute: typeof LibraryRoute
+  OutcomesRoute: typeof OutcomesRoute
+  PricingRoute: typeof PricingRoute
+  PrivacyRoute: typeof PrivacyRoute
+  SavedRoute: typeof SavedRoute
+  TermsRoute: typeof TermsRoute
+  TodayRoute: typeof TodayRoute
+  WeeklyRoute: typeof WeeklyRoute
+  AnalysisCaseIdRoute: typeof AnalysisCaseIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +221,115 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/account': {
+      id: '/account'
+      path: '/account'
+      fullPath: '/account'
+      preLoaderRoute: typeof AccountRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/analyze': {
+      id: '/analyze'
+      path: '/analyze'
+      fullPath: '/analyze'
+      preLoaderRoute: typeof AnalyzeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/library': {
+      id: '/library'
+      path: '/library'
+      fullPath: '/library'
+      preLoaderRoute: typeof LibraryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/outcomes': {
+      id: '/outcomes'
+      path: '/outcomes'
+      fullPath: '/outcomes'
+      preLoaderRoute: typeof OutcomesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pricing': {
+      id: '/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof PricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/saved': {
+      id: '/saved'
+      path: '/saved'
+      fullPath: '/saved'
+      preLoaderRoute: typeof SavedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/today': {
+      id: '/today'
+      path: '/today'
+      fullPath: '/today'
+      preLoaderRoute: typeof TodayRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/weekly': {
+      id: '/weekly'
+      path: '/weekly'
+      fullPath: '/weekly'
+      preLoaderRoute: typeof WeeklyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/analysis/$caseId': {
+      id: '/analysis/$caseId'
+      path: '/analysis/$caseId'
+      fullPath: '/analysis/$caseId'
+      preLoaderRoute: typeof AnalysisCaseIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AboutRoute: AboutRoute,
+  AccountRoute: AccountRoute,
+  AnalyzeRoute: AnalyzeRoute,
+  AuthRoute: AuthRoute,
+  LibraryRoute: LibraryRoute,
+  OutcomesRoute: OutcomesRoute,
+  PricingRoute: PricingRoute,
+  PrivacyRoute: PrivacyRoute,
+  SavedRoute: SavedRoute,
+  TermsRoute: TermsRoute,
+  TodayRoute: TodayRoute,
+  WeeklyRoute: WeeklyRoute,
+  AnalysisCaseIdRoute: AnalysisCaseIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

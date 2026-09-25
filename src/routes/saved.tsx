@@ -1,0 +1,6 @@
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { ArrowRight } from "lucide-react";
+import { PageHeader } from "@/components/power/shell";
+import { sampleCases } from "@/lib/power-move-data";
+export const Route=createFileRoute("/saved")({head:()=>({meta:[{title:"Saved Cases — Power Move IQ"},{name:"description",content:"Your saved analyses and Outcome Memory history."},{property:"og:title",content:"Saved Cases — Power Move IQ"},{property:"og:description",content:"Return to recommendations, chosen moves, and recorded outcomes."},{property:"og:type",content:"website"},{name:"twitter:card",content:"summary_large_image"}]}),component:Saved});
+function Saved(){return <div className="page-shell"><PageHeader eyebrow="YOUR DECISION HISTORY" title="Saved Cases" intro="Return to the read, revisit your chosen move, and record what happened next." action={<Link to="/outcomes" className="header-cta">OUTCOME MEMORY</Link>}/><div className="case-list">{sampleCases.map(c=><Link to="/analysis/$caseId" params={{caseId:c.id}} className="case-row" key={c.id}><span className="case-type">{c.type} · {c.ago}</span><div><h3>{c.title}</h3><p>{c.summary}</p></div><span className="status">{c.status} <ArrowRight className="inline size-3"/></span></Link>)}</div></div>}
