@@ -26,7 +26,8 @@ h1,h2,h3,.serif { font-family: var(--font-serif); font-weight: 500; letter-spaci
 .site-header { height: 78px; position: sticky; top: 0; z-index: 30; display:flex; align-items:center; justify-content:space-between; padding:0 5vw; background:oklch(0.105 0.008 80 / 94%); border-bottom:1px solid var(--border); backdrop-filter:blur(16px); }
 .wordmark { display:flex; align-items:center; gap:12px; font-size:12px; letter-spacing:.16em; white-space:nowrap; }
 .owl-slot { width:72px; aspect-ratio:1; border:1px solid var(--gold); border-radius:50%; display:grid; place-items:center; color:var(--gold); font-size:8px; letter-spacing:.15em; position:relative; }
-.owl-slot:after { content:""; position:absolute; inset:5px; border:1px solid var(--border); border-radius:50%; }
+.owl-slot { border:0; overflow:hidden; }
+.owl-slot img { width:100%; height:100%; object-fit:cover; transform:scale(1.08); border-radius:50%; display:block; }
 .owl-slot-sm { width:32px; }
 .desktop-nav { display:flex; height:100%; align-items:center; gap:28px; }
 .desktop-nav a { height:100%; display:flex; align-items:center; font-size:10px; text-transform:uppercase; letter-spacing:.13em; color:var(--muted-foreground); border-bottom:1px solid transparent; }
