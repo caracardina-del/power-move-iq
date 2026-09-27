@@ -2,8 +2,15 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { analysisSchema, type FullAnalysis } from "./moveiq-schema";
 
-export async function getTier(supabase: SupabaseClient<Database>, userId: string): Promise<"free" | "pro"> {
-  const { data } = await supabase.from("profiles").select("subscription_tier").eq("id", userId).maybeSingle();
+export async function getTier(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+): Promise<"free" | "pro"> {
+  const { data } = await supabase
+    .from("profiles")
+    .select("subscription_tier")
+    .eq("id", userId)
+    .maybeSingle();
   return data?.subscription_tier === "pro" ? "pro" : "free";
 }
 
@@ -28,7 +35,12 @@ Respond with a single JSON object with exactly these keys:
 
 export class AnalysisError extends Error {}
 
-export async function generateAnalysis(input: { situation: string; type: string; urgency: string; prior?: string | undefined }): Promise<FullAnalysis> {
+export async function generateAnalysis(input: {
+  situation: string;
+  type: string;
+  urgency: string;
+  prior?: string | undefined;
+}): Promise<FullAnalysis> {
   const key = process.env["LOVABLE_API_KEY"];
   if (!key) throw new AnalysisError("Analysis is temporarily unavailable.");
   const user = `Situation type: ${input.type}\nUrgency: ${input.urgency}\n${input.prior ? `PRIOR ANALYSIS AND WHAT HAPPENED SINCE (this is a follow-up):\n${input.prior}\n\n` : ""}Situation:\n${input.situation}`;
@@ -38,12 +50,19 @@ export async function generateAnalysis(input: { situation: string; type: string;
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
-        messages: [{ role: "system", content: SYSTEM }, { role: "user", content: user }],
+        messages: [
+          { role: "system", content: SYSTEM },
+          { role: "user", content: user },
+        ],
         response_format: { type: "json_object" },
       }),
     });
-    if (res.status === 429) throw new AnalysisError("Analysis is busy right now. Please try again in a minute.");
-    if (res.status === 402) throw new AnalysisError("Analysis capacity is temporarily exhausted. Please try again later.");
+    if (res.status === 429)
+      throw new AnalysisError("Analysis is busy right now. Please try again in a minute.");
+    if (res.status === 402)
+      throw new AnalysisError(
+        "Analysis capacity is temporarily exhausted. Please try again later.",
+      );
     if (!res.ok) {
       console.error("AI gateway error", res.status, await res.text());
       continue;
@@ -51,7 +70,9 @@ export async function generateAnalysis(input: { situation: string; type: string;
     const body = (await res.json()) as { choices?: { message?: { content?: string } }[] };
     const raw = body.choices?.[0]?.message?.content ?? "";
     try {
-      const parsed = analysisSchema.safeParse(JSON.parse(raw.replace(/^```(json)?|```$/g, "").trim()));
+      const parsed = analysisSchema.safeParse(
+        JSON.parse(raw.replace(/^```(json)?|```$/g, "").trim()),
+      );
       if (parsed.success) return parsed.data;
       console.error("Analysis validation failed", parsed.error.issues.slice(0, 5));
     } catch (e) {

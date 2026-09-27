@@ -4,7 +4,10 @@ export const STRIPE_LINKS = {
 } as const;
 
 /** Adds the signed-in user's id so the verified Stripe webhook can attach the subscription. */
-export function checkoutUrl(plan: keyof typeof STRIPE_LINKS, user: { id: string; email?: string | null }) {
+export function checkoutUrl(
+  plan: keyof typeof STRIPE_LINKS,
+  user: { id: string; email?: string | null },
+) {
   const u = new URL(STRIPE_LINKS[plan]);
   u.searchParams.set("client_reference_id", user.id);
   if (user.email) u.searchParams.set("prefilled_email", user.email);
