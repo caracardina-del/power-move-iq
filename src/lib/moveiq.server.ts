@@ -28,7 +28,7 @@ Respond with a single JSON object with exactly these keys:
 
 export class AnalysisError extends Error {}
 
-export async function generateAnalysis(input: { situation: string; type: string; urgency: string; prior?: string }): Promise<FullAnalysis> {
+export async function generateAnalysis(input: { situation: string; type: string; urgency: string; prior?: string | undefined }): Promise<FullAnalysis> {
   const key = process.env["LOVABLE_API_KEY"];
   if (!key) throw new AnalysisError("Analysis is temporarily unavailable.");
   const user = `Situation type: ${input.type}\nUrgency: ${input.urgency}\n${input.prior ? `PRIOR ANALYSIS AND WHAT HAPPENED SINCE (this is a follow-up):\n${input.prior}\n\n` : ""}Situation:\n${input.situation}`;
