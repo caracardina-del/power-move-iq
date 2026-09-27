@@ -1,0 +1,83 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/integrations/supabase/types";
+import { analysisSchema, type FullAnalysis } from "./moveiq-schema";
+
+export async function getTier(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+): Promise<"free" | "pro"> {
+  const { data } = await supabase
+    .from("profiles")
+    .select("subscription_tier")
+    .eq("id", userId)
+    .maybeSingle();
+  return data?.subscription_tier === "pro" ? "pro" : "free";
+}
+
+const SYSTEM = `You are MOVE IQ, an educational decision-support analyst for professional and money situations (negotiations, pricing, salary, clients, boundaries).
+Write original, concise, specific analysis grounded ONLY in what the user wrote. Separate facts from assumptions. Never claim certainty.
+COUNTERPART: classify observable negotiating behaviors only (e.g. anchoring, silence, scope creep, artificial urgency, authority deflection, bundling, deadline pressure). Never diagnose personality or mental state. Cite the evidence from the user's text and state uncertainty.
+SCRIPTS: three versions of the SAME strategy — diplomatic, direct, hard_line — each 2-4 sentences the user can adapt.
+PRECEDENT: include ONLY a well-documented, verifiable historical/business/negotiation event you are highly confident about, with no invented quotes, dates, numbers or attributions. State where the analogy breaks down. If not highly confident or not genuinely relevant, set include=false and give omitted_reason. Omitting is preferred to guessing.
+Do not quote strategy books. Do not give legal, medical, tax or financial determinations; where those matter, suggest consulting a qualified professional.
+Respond with a single JSON object with exactly these keys:
+{"title": string (short editorial headline),
+"read": {"headline": string, "facts": string[], "assumptions": string[], "signals": string[], "unknowns": string[]},
+"counterpart": {"headline": string, "behaviors": [{"pattern": string, "evidence": string, "confidence": "low"|"medium"|"high"}], "uncertainty": string},
+"power_map": {"headline": string, "your_leverage": string[], "their_leverage": string[], "constraints": string[], "unknowns": string[]},
+"move": {"headline": string, "recommended": string, "rationale": string, "alternatives": [{"option": string, "tradeoff": string}], "confidence_note": string},
+"scripts": {"diplomatic": string, "direct": string, "hard_line": string},
+"countermoves": [{"if_they": string, "consider": string}],
+"second_move": {"if_success": string, "if_failure": string, "if_no_response": string},
+"dont_do": {"action": string, "why": string},
+"precedent": {"include": boolean, "omitted_reason"?: string, "name"?: string, "what_happened"?: string, "principle"?: string, "parallel"?: string, "breaks_down"?: string},
+"exit_line": {"conditions": string[], "line": string}}`;
+
+export class AnalysisError extends Error {}
+
+export async function generateAnalysis(input: {
+  situation: string;
+  type: string;
+  urgency: string;
+  prior?: string | undefined;
+}): Promise<FullAnalysis> {
+  const key = process.env["LOVABLE_API_KEY"];
+  if (!key) throw new AnalysisError("Analysis is temporarily unavailable.");
+  const user = `Situation type: ${input.type}\nUrgency: ${input.urgency}\n${input.prior ? `PRIOR ANALYSIS AND WHAT HAPPENED SINCE (this is a follow-up):\n${input.prior}\n\n` : ""}Situation:\n${input.situation}`;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          { role: "system", content: SYSTEM },
+          { role: "user", content: user },
+        ],
+        response_format: { type: "json_object" },
+      }),
+    });
+    if (res.status === 429)
+      throw new AnalysisError("Analysis is busy right now. Please try again in a minute.");
+    if (res.status === 402)
+      throw new AnalysisError(
+        "Analysis capacity is temporarily exhausted. Please try again later.",
+      );
+    if (!res.ok) {
+      console.error("AI gateway error", res.status, await res.text());
+      continue;
+    }
+    const body = (await res.json()) as { choices?: { message?: { content?: string } }[] };
+    const raw = body.choices?.[0]?.message?.content ?? "";
+    try {
+      const parsed = analysisSchema.safeParse(
+        JSON.parse(raw.replace(/^```(json)?|```$/g, "").trim()),
+      );
+      if (parsed.success) return parsed.data;
+      console.error("Analysis validation failed", parsed.error.issues.slice(0, 5));
+    } catch (e) {
+      console.error("Analysis JSON parse failed", e);
+    }
+  }
+  throw new AnalysisError("The analysis could not be completed. Please try again.");
+}

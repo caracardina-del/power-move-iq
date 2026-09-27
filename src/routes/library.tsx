@@ -4,5 +4,60 @@ import { Bookmark } from "lucide-react";
 import { PageHeader } from "@/components/power/shell";
 import { ProLock } from "@/components/power/ui";
 import { categories, makeMoves } from "@/lib/power-move-data";
-export const Route=createFileRoute("/library")({head:()=>({meta:[{title:"90-Move Library — Power Move IQ"},{name:"description",content:"Ninety original moves for negotiation, pricing, leverage, and boundaries."},{property:"og:title",content:"The 90-Move Library"},{property:"og:description",content:"Build practical strategic judgment, one move at a time."},{property:"og:type",content:"website"},{name:"twitter:card",content:"summary_large_image"}]}),component:Library});
-function Library(){const [cat,setCat]=useState("All");const moves=makeMoves().filter(m=>cat==="All"||m.category===cat);return <div className="page-shell"><PageHeader eyebrow="THE COMPLETE INDEX" title="90 Moves" intro="A working library for negotiations, pricing, boundaries, leverage, communication, and difficult decisions."/><div className="filter-bar">{categories.map(x=><button className={`filter ${cat===x?"active":""}`} onClick={()=>setCat(x)} key={x}>{x}</button>)}</div><div className="library-grid">{moves.map(m=><article className="move-card" key={m.number}><span className="num">{String(m.number).padStart(2,"0")}</span><h3>{m.title}</h3><p>{m.principle}</p><footer><span>{m.category}</span>{m.pro?<ProLock text="PRO"/>:<Bookmark className="size-3"/>}</footer></article>)}</div></div>}
+export const Route = createFileRoute("/library")({
+  head: () => ({
+    meta: [
+      { title: "90-Move Library — Power Move IQ" },
+      {
+        name: "description",
+        content:
+          "Ten core strategic principles applied across negotiation, pricing, leverage, and boundaries.",
+      },
+      { property: "og:title", content: "The 90-Move Library" },
+      {
+        property: "og:description",
+        content: "Build practical strategic judgment, one move at a time.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+  }),
+  component: Library,
+});
+function Library() {
+  const [cat, setCat] = useState("All");
+  const moves = makeMoves().filter((m) => cat === "All" || m.category === cat);
+  return (
+    <div className="page-shell">
+      <PageHeader
+        eyebrow="THE INDEX · 10 CORE PRINCIPLES × 6 DOMAINS"
+        title="90 Moves"
+        intro="Ten core principles applied across negotiation, pricing, boundaries, leverage, communication, and decisions. Individual entries are being expanded with more specific guidance."
+      />
+      <div className="filter-bar">
+        {categories.map((x) => (
+          <button
+            className={`filter ${cat === x ? "active" : ""}`}
+            onClick={() => setCat(x)}
+            key={x}
+          >
+            {x}
+          </button>
+        ))}
+      </div>
+      <div className="library-grid">
+        {moves.map((m) => (
+          <article className="move-card" key={m.number}>
+            <span className="num">{String(m.number).padStart(2, "0")}</span>
+            <h3>{m.title}</h3>
+            <p>{m.principle}</p>
+            <footer>
+              <span>{m.category}</span>
+              {m.pro ? <ProLock text="PRO" /> : <Bookmark className="size-3" />}
+            </footer>
+          </article>
+        ))}
+      </div>
+    </div>
+  );
+}

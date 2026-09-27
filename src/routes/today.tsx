@@ -2,5 +2,122 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Bookmark, Share2, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/power/shell";
-export const Route=createFileRoute("/today")({head:()=>({meta:[{title:"Today — Power Move IQ"},{name:"description",content:"A daily strategic move and this week’s decision lens."},{property:"og:title",content:"Today — Power Move IQ"},{property:"og:description",content:"Build your judgment one move at a time."},{property:"og:type",content:"website"},{name:"twitter:card",content:"summary_large_image"}]}),component:Today});
-function Today(){return <div className="page-shell"><PageHeader eyebrow="FRIDAY · MOVE 25 OF 90" title="Today" intro="One precise idea to sharpen the way you negotiate, decide, and respond."/><div className="today-grid"><article className="daily-move"><div className="daily-number">25</div><p className="eyebrow">NEGOTIATION · 4 MIN READ</p><h2>Don’t negotiate against yourself.</h2><p>After a clear proposal, silence is not a problem you must solve. Let the other side respond before you improve an offer they have not rejected.</p><div className="move-actions"><small>FIELD NOTE<br/>Hold the silence for one full beat.</small><div><Button variant="ghost" size="icon" aria-label="Save move"><Bookmark/></Button><Button variant="ghost" size="icon" aria-label="Share move"><Share2/></Button></div></div></article><aside><div className="streak-card"><p className="eyebrow">CURRENT STREAK</p><div><span className="streak-value">12</span> <small>DAYS</small></div><div className="week-dots">{[1,1,1,1,1,0,0].map((x,i)=><i key={i} className={x?"on":""}/>)}</div><small>Longest streak · 19 days</small></div><div className="lens-card"><p className="eyebrow">WEEKLY STRATEGY LENS</p><h3>The Cost of Unclear</h3><p>Ambiguity usually benefits the side asking you to wait, stretch, or absorb risk.</p><Button asChild variant="editorial"><Link to="/weekly">OPEN THE LENS <ArrowRight/></Link></Button></div></aside></div></div>}
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuthUser } from "@/hooks/use-auth-user";
+function useStreak() {
+  const { user } = useAuthUser();
+  const [s, setS] = useState<{ cur: number; long: number } | null>(null);
+  useEffect(() => {
+    if (!user) return;
+    void (async () => {
+      const today = new Date().toISOString().slice(0, 10);
+      const y = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+      const { data } = await supabase
+        .from("streaks")
+        .select("current_streak,longest_streak,last_active_date")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      let cur = data?.current_streak ?? 0;
+      let long = data?.longest_streak ?? 0;
+      if (data?.last_active_date !== today) {
+        cur = data?.last_active_date === y ? cur + 1 : 1;
+        long = Math.max(long, cur);
+        await supabase
+          .from("streaks")
+          .upsert(
+            {
+              user_id: user.id,
+              current_streak: cur,
+              longest_streak: long,
+              last_active_date: today,
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: "user_id" },
+          );
+      }
+      setS({ cur, long });
+    })();
+  }, [user]);
+  return { user, s };
+}
+export const Route = createFileRoute("/today")({
+  head: () => ({
+    meta: [
+      { title: "Today — Power Move IQ" },
+      { name: "description", content: "A daily strategic move and this week’s decision lens." },
+      { property: "og:title", content: "Today — Power Move IQ" },
+      { property: "og:description", content: "Build your judgment one move at a time." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+  }),
+  component: Today,
+});
+function Today() {
+  const { user, s } = useStreak();
+  const day = new Date().toLocaleDateString("en-US", { weekday: "long" }).toUpperCase();
+  return (
+    <div className="page-shell">
+      <PageHeader
+        eyebrow={`${day} · MOVE 25 OF 90`}
+        title="Today"
+        intro="One precise idea to sharpen the way you negotiate, decide, and respond."
+      />
+      <div className="today-grid">
+        <article className="daily-move">
+          <div className="daily-number">25</div>
+          <p className="eyebrow">NEGOTIATION · 4 MIN READ</p>
+          <h2>Don’t negotiate against yourself.</h2>
+          <p>
+            After a clear proposal, silence is not a problem you must solve. Let the other side
+            respond before you improve an offer they have not rejected.
+          </p>
+          <div className="move-actions">
+            <small>
+              FIELD NOTE
+              <br />
+              Hold the silence for one full beat.
+            </small>
+            <div>
+              <Button variant="ghost" size="icon" aria-label="Save move">
+                <Bookmark />
+              </Button>
+              <Button variant="ghost" size="icon" aria-label="Share move">
+                <Share2 />
+              </Button>
+            </div>
+          </div>
+        </article>
+        <aside>
+          <div className="streak-card">
+            <p className="eyebrow">CURRENT STREAK</p>
+            <div>
+              <span className="streak-value">{s?.cur ?? 0}</span> <small>DAYS</small>
+            </div>
+            <div className="week-dots">
+              {Array.from({ length: 7 }, (_, i) => (i < Math.min(s?.cur ?? 0, 7) ? 1 : 0)).map(
+                (x, i) => (
+                  <i key={i} className={x ? "on" : ""} />
+                ),
+              )}
+            </div>
+            <small>
+              {user ? `Longest streak · ${s?.long ?? 0} days` : "Sign in to track your streak"}
+            </small>
+          </div>
+          <div className="lens-card">
+            <p className="eyebrow">WEEKLY STRATEGY LENS</p>
+            <h3>The Cost of Unclear</h3>
+            <p>Ambiguity usually benefits the side asking you to wait, stretch, or absorb risk.</p>
+            <Button asChild variant="editorial">
+              <Link to="/weekly">
+                OPEN THE LENS <ArrowRight />
+              </Link>
+            </Button>
+          </div>
+        </aside>
+      </div>
+    </div>
+  );
+}

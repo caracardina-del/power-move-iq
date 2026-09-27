@@ -1,8 +1,8 @@
-# Power Move IQ MVP
-- [x] Enable Cloud authentication and secure database
-- [x] Add profiles, roles, analyses, outcomes, favorites, streaks, moves, and weekly lenses
-- [x] Seed 90 original Daily Moves and weekly lenses
-- [x] Build shared editorial shell and navigation
-- [x] Build all requested routes and core interactions
-- [x] Validate desktop/mobile UI and diagnostics
-- [ ] Leave payment activation as the only external blocker
+# Power Move IQ
+- [x] MVP screens, auth, database, seeded content
+- [x] Lock subscription_tier to server/billing only
+- [x] Real AI MOVE IQ analysis with free/pro limits
+- [x] Real cases, outcomes, account, streak data
+- [x] Pro gating enforced server-side (cases, Outcome Memory, follow-ups, Weekly IQ)
+- [x] Stripe payment links + verified webhook endpoint
+- [ ] Stripe webhook secret + endpoint registration (needs owner action in Stripe)

@@ -216,6 +216,36 @@ export type Database = {
         }
         Relationships: []
       }
+      subscriptions: {
+        Row: {
+          current_period_end: string | null
+          plan: string | null
+          status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          current_period_end?: string | null
+          plan?: string | null
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          current_period_end?: string | null
+          plan?: string | null
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -276,6 +306,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_pro: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       analysis_status: "draft" | "complete" | "archived"
