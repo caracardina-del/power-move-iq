@@ -24,7 +24,6 @@ const eventSchema = z.object({
   id: z.string().min(1),
   type: z.string(),
   created: z.number(),
-  livemode: z.boolean().optional(),
   data: z.object({ object: z.record(z.string(), z.unknown()) }),
 });
 
@@ -39,6 +38,8 @@ function planFromSub(obj: Record<string, unknown>): string | null {
   const interval = items?.[0]?.price?.recurring?.interval;
   return interval === "year" ? "annual" : interval === "month" ? "monthly" : null;
 }
+
+const str = (v: unknown) => (typeof v === "string" ? v : "");
 
 export const Route = createFileRoute("/api/public/stripe-webhook")({
   server: {
@@ -70,116 +71,178 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
           .maybeSingle();
         if (seenErr) return retry("event lookup failed", seenErr);
         if (seen) return new Response("duplicate");
-
-        const setTier = async (userId: string, pro: boolean) => {
+        const logEvent = async () => {
           const { error } = await supabaseAdmin
+            .from("stripe_events")
+            .insert({ id: event.id, type: event.type });
+          if (error && error.code !== "23505") console.error("stripe-webhook: event log failed", error);
+        };
+
+        // Tier is derived from ALL of a user's subscriptions: one ending never revokes another.
+        const recomputeTier = async (userId: string) => {
+          const { data, error } = await supabaseAdmin
+            .from("stripe_subscriptions")
+            .select("status")
+            .eq("user_id", userId);
+          if (error) return error;
+          const pro = (data ?? []).some((r) => ENTITLED.has(r.status));
+          const { error: tErr } = await supabaseAdmin
             .from("profiles")
             .update({ subscription_tier: pro ? "pro" : "free", updated_at: new Date().toISOString() })
             .eq("id", userId);
-          return error;
+          return tErr;
         };
 
-        if (event.type === "checkout.session.completed") {
-          const userId = z.string().uuid().safeParse(obj["client_reference_id"]);
-          const paid = obj["payment_status"] === "paid" || obj["payment_status"] === "no_payment_required";
-          const subId = typeof obj["subscription"] === "string" ? obj["subscription"] : "";
-          const customer = typeof obj["customer"] === "string" ? obj["customer"] : "";
-          if (!userId.success || obj["mode"] !== "subscription" || !paid || !subId) {
-            await supabaseAdmin.from("stripe_events").insert({ id: event.id, type: event.type });
-            return new Response("ignored");
-          }
-          // The referenced user must exist; the checkout email should match their account.
-          const { data: profile, error: pErr } = await supabaseAdmin
-            .from("profiles")
-            .select("id, email")
-            .eq("id", userId.data)
+        // Upsert one subscription row, ignoring stale (older) events for that subscription.
+        const writeSub = async (row: {
+          subId: string;
+          userId: string;
+          customer?: string;
+          status: string;
+          plan?: string | null;
+          end?: string | null;
+          cancelAtEnd?: boolean;
+        }) => {
+          const { data: cur, error: cErr } = await supabaseAdmin
+            .from("stripe_subscriptions")
+            .select("last_event_at, user_id")
+            .eq("stripe_subscription_id", row.subId)
             .maybeSingle();
-          if (pErr) return retry("profile lookup failed", pErr);
-          if (!profile) {
-            const { data: au } = await supabaseAdmin.auth.admin.getUserById(userId.data);
-            if (!au?.user) {
-              console.warn("stripe-webhook: checkout for unknown user", userId.data);
-              await supabaseAdmin.from("stripe_events").insert({ id: event.id, type: event.type });
-              return new Response("unknown user");
-            }
-            const { error: cErr } = await supabaseAdmin
-              .from("profiles")
-              .upsert({ id: au.user.id, email: au.user.email ?? "" }, { onConflict: "id" });
-            if (cErr) return retry("profile create failed", cErr);
+          if (cErr) return { error: cErr };
+          if (cur && cur.user_id !== row.userId) {
+            console.warn("stripe-webhook: subscription user mismatch", row.subId);
+            return { stale: true };
           }
-          const details = obj["customer_details"] as { email?: string } | undefined;
-          if (details?.email && profile?.email && details.email.toLowerCase() !== profile.email.toLowerCase())
-            console.warn("stripe-webhook: checkout email differs from account email", event.id);
-
-          const { data: existing } = await supabaseAdmin
-            .from("subscriptions")
-            .select("last_event_at, stripe_subscription_id")
-            .eq("user_id", userId.data)
-            .maybeSingle();
-          // Don't let an old checkout overwrite a newer subscription event.
-          if (!(existing?.last_event_at && existing.stripe_subscription_id === subId && existing.last_event_at > eventAt)) {
-            const amount = Number(obj["amount_subtotal"] ?? obj["amount_total"] ?? 0);
-            const { error } = await supabaseAdmin.from("subscriptions").upsert({
-              user_id: userId.data,
-              stripe_customer_id: customer,
-              stripe_subscription_id: subId,
-              status: "active",
-              plan: amount === 9900 ? "annual" : amount === 1499 ? "monthly" : "unknown",
+          if (cur?.last_event_at && new Date(cur.last_event_at) > new Date(eventAt))
+            return { stale: true };
+          const { error } = await supabaseAdmin.from("stripe_subscriptions").upsert({
+            stripe_subscription_id: row.subId,
+            user_id: row.userId,
+            ...(row.customer ? { stripe_customer_id: row.customer } : {}),
+            status: row.status,
+            ...(row.plan ? { plan: row.plan } : {}),
+            ...(row.end !== undefined ? { current_period_end: row.end } : {}),
+            ...(row.cancelAtEnd !== undefined ? { cancel_at_period_end: row.cancelAtEnd } : {}),
+            last_event_at: eventAt,
+            updated_at: new Date().toISOString(),
+          });
+          if (error) return { error };
+          // Legacy one-row-per-user table keeps the customer id used by the billing portal.
+          if (row.customer) {
+            await supabaseAdmin.from("subscriptions").upsert({
+              user_id: row.userId,
+              stripe_customer_id: row.customer,
+              stripe_subscription_id: row.subId,
+              status: row.status,
+              ...(row.plan ? { plan: row.plan } : {}),
               last_event_at: eventAt,
               updated_at: new Date().toISOString(),
             });
-            if (error) return retry("subscription upsert failed", error);
-            const tErr = await setTier(userId.data, true);
-            if (tErr) return retry("tier update failed", tErr);
           }
+          return {};
+        };
+
+        const ensureProfile = async (userId: string) => {
+          const { data: profile, error } = await supabaseAdmin
+            .from("profiles")
+            .select("id")
+            .eq("id", userId)
+            .maybeSingle();
+          if (error) return { error };
+          if (profile) return { ok: true };
+          const { data: au } = await supabaseAdmin.auth.admin.getUserById(userId);
+          if (!au?.user) return { ok: false };
+          const { error: iErr } = await supabaseAdmin
+            .from("profiles")
+            .upsert({ id: au.user.id, email: au.user.email ?? "" }, { onConflict: "id" });
+          return iErr ? { error: iErr } : { ok: true };
+        };
+
+        if (event.type.startsWith("checkout.session.")) {
+          const known = [
+            "checkout.session.completed",
+            "checkout.session.async_payment_succeeded",
+            "checkout.session.async_payment_failed",
+          ];
+          if (!known.includes(event.type)) {
+            await logEvent();
+            return new Response("ignored");
+          }
+          const userId = z.string().uuid().safeParse(obj["client_reference_id"]);
+          const subId = str(obj["subscription"]);
+          const customer = str(obj["customer"]);
+          if (!userId.success || obj["mode"] !== "subscription" || !subId) {
+            await logEvent();
+            return new Response("ignored");
+          }
+          const p = await ensureProfile(userId.data);
+          if (p.error) return retry("profile lookup failed", p.error);
+          if (!p.ok) {
+            console.warn("stripe-webhook: checkout for unknown user", userId.data);
+            await logEvent();
+            return new Response("unknown user");
+          }
+          const payStatus = str(obj["payment_status"]);
+          const paid = payStatus === "paid" || payStatus === "no_payment_required";
+          let status: string;
+          if (event.type === "checkout.session.async_payment_failed") status = "incomplete_expired";
+          else if (event.type === "checkout.session.async_payment_succeeded") status = paid ? "active" : "incomplete";
+          else status = paid ? "active" : "incomplete"; // delayed methods: link now, grant later
+          const amount = Number(obj["amount_subtotal"] ?? obj["amount_total"] ?? 0);
+          const plan = amount === 9900 ? "annual" : amount === 1499 ? "monthly" : null;
+          const w = await writeSub({ subId, userId: userId.data, customer, status, plan });
+          if (w.error) return retry("subscription write failed", w.error);
+          const tErr = await recomputeTier(userId.data);
+          if (tErr) return retry("tier update failed", tErr);
         } else if (
           event.type === "customer.subscription.created" ||
           event.type === "customer.subscription.updated" ||
           event.type === "customer.subscription.deleted"
         ) {
-          const subId = String(obj["id"] ?? "");
+          const subId = str(obj["id"]);
+          const customer = str(obj["customer"]);
+          let userId: string | null = null;
           const { data: sub, error: sErr } = await supabaseAdmin
-            .from("subscriptions")
-            .select("user_id, last_event_at")
+            .from("stripe_subscriptions")
+            .select("user_id")
             .eq("stripe_subscription_id", subId)
             .maybeSingle();
           if (sErr) return retry("subscription lookup failed", sErr);
-          // Arrived before checkout.session.completed: ask Stripe to retry later.
-          if (!sub) return new Response("subscription not yet linked", { status: 409 });
-          if (sub.last_event_at && sub.last_event_at > eventAt) {
-            await supabaseAdmin.from("stripe_events").insert({ id: event.id, type: event.type });
-            return new Response("stale");
+          userId = sub?.user_id ?? null;
+          if (!userId && customer) {
+            const { data: byCust } = await supabaseAdmin
+              .from("stripe_subscriptions")
+              .select("user_id")
+              .eq("stripe_customer_id", customer)
+              .limit(1)
+              .maybeSingle();
+            userId = byCust?.user_id ?? null;
           }
+          // Arrived before checkout linked it to a user: ask Stripe to retry later.
+          if (!userId) return new Response("subscription not yet linked", { status: 409 });
           const status =
-            event.type === "customer.subscription.deleted" ? "canceled" : String(obj["status"]);
+            event.type === "customer.subscription.deleted" ? "canceled" : str(obj["status"]);
           const end = Number(
             obj["current_period_end"] ??
               (obj["items"] as { data?: { current_period_end?: number }[] })?.data?.[0]
                 ?.current_period_end ??
               0,
           );
-          const plan = planFromSub(obj);
-          const { error } = await supabaseAdmin
-            .from("subscriptions")
-            .update({
-              status,
-              ...(plan ? { plan } : {}),
-              cancel_at_period_end: Boolean(obj["cancel_at_period_end"]),
-              current_period_end: end ? new Date(end * 1000).toISOString() : null,
-              last_event_at: eventAt,
-              updated_at: new Date().toISOString(),
-            })
-            .eq("stripe_subscription_id", subId);
-          if (error) return retry("subscription update failed", error);
-          // cancel_at_period_end keeps status "active" → Pro stays until the period ends.
-          const tErr = await setTier(sub.user_id, ENTITLED.has(status));
+          const w = await writeSub({
+            subId,
+            userId,
+            customer,
+            status,
+            plan: planFromSub(obj),
+            end: end ? new Date(end * 1000).toISOString() : null,
+            cancelAtEnd: Boolean(obj["cancel_at_period_end"]),
+          });
+          if (w.error) return retry("subscription update failed", w.error);
+          const tErr = await recomputeTier(userId);
           if (tErr) return retry("tier update failed", tErr);
         }
 
-        const { error: logErr } = await supabaseAdmin
-          .from("stripe_events")
-          .insert({ id: event.id, type: event.type });
-        if (logErr && logErr.code !== "23505") console.error("stripe-webhook: event log failed", logErr);
+        await logEvent();
         return new Response("ok");
       },
     },
