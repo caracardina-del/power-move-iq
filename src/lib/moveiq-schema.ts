@@ -54,6 +54,7 @@ export const analysisSchema = z.object({
     principle: z.string().optional(),
     parallel: z.string().optional(),
     breaks_down: z.string().optional(),
+    source: z.string().optional(),
   }),
   exit_line: z.object({ conditions: list, line: z.string().default("") }),
 });

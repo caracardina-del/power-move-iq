@@ -49,8 +49,12 @@ function Privacy() {
       <h2>Your choices</h2>
       <p>
         You can update your display name and preferences in Account, and cancel a subscription at
-        any time. To request deletion of your account and data, contact us through the support
-        channel listed for the service.
+        any time from Account → Manage subscription. To request deletion of your account and data,
+        email <a href="mailto:powermoveiq@gmail.com?subject=Account%20deletion%20request">powermoveiq@gmail.com</a>{" "}
+        from the address on your account with the subject "Account deletion request". Deletion is
+        handled manually: we will confirm by email once your account and data have been removed.
+        Nothing is deleted automatically when you send the request. Please cancel any active
+        subscription first so billing stops.
       </p>
       <p className="text-xs text-muted-foreground">
         This notice describes the service as it currently operates and may be updated as the product

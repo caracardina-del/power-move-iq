@@ -41,6 +41,13 @@ function Terms() {
         We may update features, prices, or these terms. Price changes will not apply to a billing
         period you have already paid for.
       </p>
+      <h2>Support</h2>
+      <p>
+        Questions, billing help, or account deletion requests: email{" "}
+        <a href="mailto:powermoveiq@gmail.com">powermoveiq@gmail.com</a>. Subscriptions can be
+        cancelled from Account → Manage subscription. Account deletion is handled manually on
+        request and confirmed by email.
+      </p>
       <h2>Independence</h2>
       <p>
         Power Move IQ is an independent project and is not affiliated with Donald J. Trump, the

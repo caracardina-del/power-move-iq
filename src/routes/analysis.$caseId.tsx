@@ -349,7 +349,7 @@ function Full({
       <Layer n={n++} k="DON’T DO THIS™" title={a.dont_do.action} tone="warning">
         <p>{a.dont_do.why}</p>
       </Layer>
-      {a.precedent.include && a.precedent.name ? (
+      {a.precedent.include && a.precedent.name && a.precedent.source ? (
         <Layer n={n++} k="THE PRECEDENT™" title={a.precedent.name}>
           {a.precedent.what_happened && <p>{a.precedent.what_happened}</p>}
           <Rows
@@ -357,6 +357,7 @@ function Full({
               ["Principle", a.precedent.principle ?? ""],
               ["Why it parallels", a.precedent.parallel ?? ""],
               ["Where it breaks down", a.precedent.breaks_down ?? ""],
+              ["Source", a.precedent.source ?? ""],
             ]}
           />
           <p className="mt-4 text-xs text-muted-foreground">
@@ -374,9 +375,12 @@ function Full({
       <Layer
         n={n++}
         k="EXIT LINE™"
-        title={a.exit_line.line || "When walking away becomes reasonable."}
+        title="When stepping back is reasonable."
       >
         <Bullets label="CONDITIONS" items={a.exit_line.conditions} />
+        {a.exit_line.line && (
+          <blockquote className="exit-quote">{a.exit_line.line}</blockquote>
+        )}
       </Layer>
       <Layer n={n++} k="OUTCOME MEMORY™" title="Close the loop. Build your judgment.">
         <OutcomeForm

@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { LockKeyhole } from "lucide-react";
-import { useAuthUser } from "@/hooks/use-auth-user";
+import { useEntitlement } from "@/hooks/use-entitlement";
 import { checkoutUrl } from "@/lib/billing";
 export function GoldRule() {
   return <div className="gold-rule" />;
@@ -44,7 +44,7 @@ export function ProGate({ title, body }: { title: string; body: string }) {
   );
 }
 export function PricingCard() {
-  const { user } = useAuthUser();
+  const { user, tier, loading } = useEntitlement();
   return (
     <div className="pricing-card">
       <p className="eyebrow">POWER MOVE IQ PRO</p>
@@ -60,7 +60,18 @@ export function PricingCard() {
       <div className="annual">
         or $99 billed yearly <b>save 45%</b>
       </div>
-      {user ? (
+      {user && tier === "pro" ? (
+        <div className="grid gap-2">
+          <p className="text-sm">Your Pro membership is active.</p>
+          <Button asChild size="lg" className="w-full">
+            <Link to="/account">MANAGE SUBSCRIPTION</Link>
+          </Button>
+        </div>
+      ) : user && loading ? (
+        <Button size="lg" className="w-full" disabled>
+          CHECKING YOUR PLAN…
+        </Button>
+      ) : user ? (
         <div className="grid gap-2">
           <Button asChild size="lg" className="w-full">
             <a href={checkoutUrl("monthly", user)}>START PRO · $14.99 / MONTH</a>
