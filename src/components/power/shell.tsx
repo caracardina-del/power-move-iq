@@ -39,6 +39,7 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
         <Wordmark compact />
         <p>Educational decision-support, not legal or financial advice.</p>
         <div>
+          <Link to="/about">About</Link>
           <Link to="/privacy">Privacy</Link>
           <Link to="/terms">Terms</Link>
           <a href="mailto:powermoveiq@gmail.com">Support</a>
