@@ -1224,3 +1224,16 @@ h3,
   margin: 18px 0 0;
   color: var(--foreground);
 }
+
+/* Final phone and tablet navigation legibility. */
+@media (max-width: 900px) {
+  .mobile-nav a {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+  }
+  .mobile-nav svg {
+    width: 21px;
+    height: 21px;
+  }
+}
