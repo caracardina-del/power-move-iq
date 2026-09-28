@@ -216,9 +216,29 @@ export type Database = {
         }
         Relationships: []
       }
+      stripe_events: {
+        Row: {
+          id: string
+          received_at: string
+          type: string
+        }
+        Insert: {
+          id: string
+          received_at?: string
+          type: string
+        }
+        Update: {
+          id?: string
+          received_at?: string
+          type?: string
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
+          cancel_at_period_end: boolean
           current_period_end: string | null
+          last_event_at: string | null
           plan: string | null
           status: string
           stripe_customer_id: string | null
@@ -227,7 +247,9 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          cancel_at_period_end?: boolean
           current_period_end?: string | null
+          last_event_at?: string | null
           plan?: string | null
           status?: string
           stripe_customer_id?: string | null
@@ -236,7 +258,9 @@ export type Database = {
           user_id: string
         }
         Update: {
+          cancel_at_period_end?: boolean
           current_period_end?: string | null
+          last_event_at?: string | null
           plan?: string | null
           status?: string
           stripe_customer_id?: string | null
