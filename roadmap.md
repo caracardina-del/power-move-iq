@@ -5,4 +5,4 @@
 - [x] Real cases, outcomes, account, streak data
 - [x] Pro gating enforced server-side (cases, Outcome Memory, follow-ups, Weekly IQ)
 - [x] Stripe payment links + verified webhook endpoint
-- [ ] Stripe webhook secret + endpoint registration (needs owner action in Stripe)
+- [ ] Stripe: connect owner account (Stripe connector unavailable to agent this session), register webhook + STRIPE_WEBHOOK_SECRET, test checkout, then add customer portal
