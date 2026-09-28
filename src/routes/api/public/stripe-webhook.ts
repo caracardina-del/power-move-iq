@@ -96,12 +96,19 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
             .maybeSingle();
           if (pErr) return retry("profile lookup failed", pErr);
           if (!profile) {
-            console.warn("stripe-webhook: checkout for unknown user", userId.data);
-            await supabaseAdmin.from("stripe_events").insert({ id: event.id, type: event.type });
-            return new Response("unknown user");
+            const { data: au } = await supabaseAdmin.auth.admin.getUserById(userId.data);
+            if (!au?.user) {
+              console.warn("stripe-webhook: checkout for unknown user", userId.data);
+              await supabaseAdmin.from("stripe_events").insert({ id: event.id, type: event.type });
+              return new Response("unknown user");
+            }
+            const { error: cErr } = await supabaseAdmin
+              .from("profiles")
+              .upsert({ id: au.user.id, email: au.user.email ?? "" }, { onConflict: "id" });
+            if (cErr) return retry("profile create failed", cErr);
           }
           const details = obj["customer_details"] as { email?: string } | undefined;
-          if (details?.email && profile.email && details.email.toLowerCase() !== profile.email.toLowerCase())
+          if (details?.email && profile?.email && details.email.toLowerCase() !== profile.email.toLowerCase())
             console.warn("stripe-webhook: checkout email differs from account email", event.id);
 
           const { data: existing } = await supabaseAdmin
