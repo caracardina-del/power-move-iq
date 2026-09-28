@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/power/shell";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthUser } from "@/hooks/use-auth-user";
 import { getAccountSummary } from "@/lib/moveiq.functions";
+import { createPortalSession } from "@/lib/billing.functions";
 export const Route = createFileRoute("/account")({
   head: () => ({
     meta: [
@@ -25,6 +26,9 @@ function Account() {
   const { user } = useAuthUser();
   const nav = useNavigate();
   const summaryFn = useServerFn(getAccountSummary);
+  const portalFn = useServerFn(createPortalSession);
+  const [portalBusy, setPortalBusy] = useState(false);
+  const [portalMsg, setPortalMsg] = useState("");
   const [s, setS] = useState<S | null>(null);
   const [name, setName] = useState("");
   const [focus, setFocus] = useState(FOCUS[0]);
@@ -71,6 +75,18 @@ function Account() {
       .eq("id", user.id);
     setSaved(error ? "Preferences could not be saved." : "Preferences saved.");
   }
+  async function openPortal() {
+    setPortalBusy(true);
+    setPortalMsg("");
+    try {
+      const r = await portalFn();
+      if (r.ok) window.location.assign(r.url);
+      else setPortalMsg(r.message);
+    } catch {
+      setPortalMsg("The billing page couldn't be opened. Please try again shortly.");
+    }
+    setPortalBusy(false);
+  }
   async function signOut() {
     await supabase.auth.signOut();
     await nav({ to: "/auth" });
@@ -101,6 +117,18 @@ function Account() {
             <Button asChild className="mt-5">
               <Link to="/pricing">VIEW PRO</Link>
             </Button>
+          )}
+          {pro && (
+            <>
+              <Button className="mt-5" variant="outline" disabled={portalBusy} onClick={openPortal}>
+                {portalBusy ? "OPENING…" : "MANAGE SUBSCRIPTION"}
+              </Button>
+              {portalMsg && (
+                <p className="mt-3 text-xs text-muted-foreground" role="status">
+                  {portalMsg}
+                </p>
+              )}
+            </>
           )}
         </section>
         <section className="account-panel">
