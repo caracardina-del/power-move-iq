@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
@@ -26,7 +26,58 @@ function Auth() {
   const [name, setName] = useState("");
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
+  const [finishing, setFinishing] = useState(false);
   const nav = useNavigate();
+
+  // Consume an OAuth return (#access_token=… or ?code=…), persist the session, clean the URL.
+  useEffect(() => {
+    let alive = true;
+    const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+    const query = new URLSearchParams(window.location.search);
+    const access_token = hash.get("access_token");
+    const refresh_token = hash.get("refresh_token");
+    const code = query.get("code");
+    const oauthError = hash.get("error_description") ?? query.get("error_description");
+    const clean = () => window.history.replaceState(null, "", window.location.pathname);
+    void (async () => {
+      if (oauthError) {
+        clean();
+        setMsg(oauthError);
+        return;
+      }
+      if (access_token && refresh_token) {
+        setFinishing(true);
+        const { error } = await supabase.auth.setSession({ access_token, refresh_token });
+        clean();
+        if (error) {
+          if (alive) {
+            setFinishing(false);
+            setMsg("Google sign-in couldn't be completed. Please try again.");
+          }
+          return;
+        }
+      } else if (code) {
+        setFinishing(true);
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
+        clean();
+        if (error) {
+          if (alive) {
+            setFinishing(false);
+            setMsg("Google sign-in couldn't be completed. Please try again.");
+          }
+          return;
+        }
+      }
+      const { data } = await supabase.auth.getUser();
+      if (!alive) return;
+      if (data.user) await nav({ to: "/account", replace: true });
+      else setFinishing(false);
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [nav]);
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
@@ -41,7 +92,7 @@ function Auth() {
         password,
         options: {
           data: { display_name: name },
-          emailRedirectTo: window.location.origin + "/account",
+          emailRedirectTo: window.location.origin + "/auth",
         },
       });
       if (error) setMsg(error.message);
@@ -52,12 +103,31 @@ function Auth() {
     setBusy(false);
   }
   async function google() {
+    setMsg("");
     const result = await lovable.auth.signInWithOAuth("google", {
       redirect_uri: window.location.origin + "/auth",
     });
-    if (result.error) setMsg(result.error.message);
-    else if (!result.redirected) await nav({ to: "/account" });
+    if (result.error) {
+      setMsg(result.error.message);
+      return;
+    }
+    if (result.redirected) return;
+    const { data } = await supabase.auth.getUser();
+    if (data.user) await nav({ to: "/account" });
+    else setMsg("Google sign-in couldn't be completed. Please try again.");
   }
+  if (finishing)
+    return (
+      <div className="auth-wrap">
+        <section className="auth-form">
+          <div className="auth-card" role="status">
+            <p className="eyebrow">SIGNING YOU IN</p>
+            <h2>One moment.</h2>
+            <p>Securing your session…</p>
+          </div>
+        </section>
+      </div>
+    );
   return (
     <div className="auth-wrap">
       <section className="auth-brand">
