@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Bookmark } from "lucide-react";
 import { PageHeader } from "@/components/power/shell";
 import { ProLock } from "@/components/power/ui";
 import { categories, makeMoves } from "@/lib/power-move-data";
@@ -53,7 +52,7 @@ function Library() {
             <p>{m.principle}</p>
             <footer>
               <span>{m.category}</span>
-              {m.pro ? <ProLock text="PRO" /> : <Bookmark className="size-3" />}
+              {m.pro ? <ProLock text="PRO" /> : <span>FREE</span>}
             </footer>
           </article>
         ))}

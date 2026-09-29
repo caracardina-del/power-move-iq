@@ -63,7 +63,7 @@ function Home() {
               placeholder="Describe the decision, tension, negotiation, or money situation…"
             />
             <Button type="submit" size="lg" disabled={!ready}>
-              FIND MY NEXT MOVE <ArrowRight />
+              ANALYZE MY SITUATION <ArrowRight />
             </Button>
             <p className="text-xs text-muted-foreground" aria-live="polite">
               {ready

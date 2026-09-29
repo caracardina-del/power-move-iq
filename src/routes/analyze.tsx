@@ -110,8 +110,13 @@ function Analyze() {
 
   const tooShort = text.trim().length < 40;
 
+  const inFlight = useRef(false);
   async function submit() {
-    if (tooShort || loading || !ready) return;
+    if (loading || inFlight.current || !ready) return;
+    if (tooShort) {
+      setError("Add who is involved, what happened, and what you want next (at least 40 characters).");
+      return;
+    }
     window.sessionStorage.removeItem("pmiq:home-draft");
     setError("");
     const draft: PendingAnalysis = { situation: text.trim(), type, urgency };
@@ -123,6 +128,7 @@ function Analyze() {
       return;
     }
 
+    inFlight.current = true;
     setLoading(true);
     try {
       const result = await run({ data: draft });
@@ -131,8 +137,9 @@ function Analyze() {
         await nav({ to: "/analysis/$caseId", params: { caseId: result.id } });
       } else setError(result.error);
     } catch {
-      setError("The analysis could not be completed. Check your connection and try again.");
+      setError("The analysis could not be completed. Check your connection or sign in again, then retry.");
     } finally {
+      inFlight.current = false;
       setLoading(false);
     }
   }
@@ -178,19 +185,17 @@ function Analyze() {
               ))}
             </select>
           </div>
-          <Button size="lg" onClick={submit} disabled={tooShort || loading || outOfFree || !ready}>
+          <Button size="lg" onClick={submit} disabled={loading || outOfFree || !ready} aria-busy={loading}>
             {loading
               ? "MAPPING THE SITUATION…"
               : error
                 ? "TRY AGAIN"
-                : user
-                  ? "ANALYZE MY SITUATION"
-                  : "CREATE ACCOUNT TO GET MY READ"}{" "}
+                : "ANALYZE MY SITUATION"}{" "}
             {!loading && <ArrowRight />}
           </Button>
           {!user && ready && (
             <p className="mt-3 text-xs text-muted-foreground">
-              No card required · Three introductory strategic reads included each month.
+              A free account is needed to run and save your analysis. No card required.
             </p>
           )}
           {text.trim().length > 0 && tooShort && (
@@ -219,7 +224,7 @@ function Analyze() {
             <p className="eyebrow">QUICK START</p>
             <div className="flex flex-wrap gap-2">
               {situations.slice(0, 5).map((s) => (
-                <button key={s} className="situation-chip bg-transparent" onClick={() => setText(s + ". ")}>
+                <button key={s} className="situation-chip bg-transparent" onClick={() => { setText((t) => (t.trim() ? `${s}. ${t}` : `${s}. `)); setError(""); document.getElementById("situation")?.focus(); }}>
                   {s}
                 </button>
               ))}
