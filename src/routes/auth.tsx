@@ -205,8 +205,8 @@ function Auth() {
           <h2>
             {pendingAnalysis
               ? mode === "up"
-                ? "Create a free account to reveal your analysis."
-                : "Sign in to reveal your analysis."
+                ? "Create your account to get your strategic read."
+                : "Sign in to get your strategic read."
               : pendingCheckout
                 ? mode === "up"
                   ? "Create your account to continue to secure checkout."
@@ -217,7 +217,7 @@ function Auth() {
           </h2>
           <p>
             {pendingAnalysis
-              ? "Your full situation is saved. No card required. Free includes 3 limited analyses each month."
+              ? "Your draft stays on this device until you sign in. No card required. Your account includes three introductory strategic reads each month."
               : pendingCheckout
                 ? "Your selected plan is saved. You will review the price again on Stripe before paying."
                 : mode === "in"
@@ -256,7 +256,7 @@ function Auth() {
               required
             />
             <Button type="submit" disabled={busy}>
-              {busy ? "PLEASE WAIT…" : mode === "in" ? "SIGN IN" : "CREATE FREE ACCOUNT"}
+              {busy ? "PLEASE WAIT…" : mode === "in" ? "SIGN IN" : "CREATE MY ACCOUNT"}
             </Button>
           </form>
           {msg && <div className="auth-msg mt-4">{msg}</div>}
