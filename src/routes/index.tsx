@@ -28,12 +28,13 @@ export const Route = createFileRoute("/")({
 function Home() {
   const [prompt, setPrompt] = useState("");
   const nav = useNavigate();
-  const ready = prompt.trim().length >= 40;
+  const ready = prompt.trim().length > 0;
 
   async function begin(e: React.FormEvent) {
     e.preventDefault();
     if (!ready) return;
-    await nav({ to: "/analyze", search: { prompt: prompt.trim() } });
+    window.sessionStorage.setItem("pmiq:home-draft", prompt.trim());
+    await nav({ to: "/analyze", search: { prompt: "" } });
   }
 
   return (
@@ -62,8 +63,15 @@ function Home() {
               placeholder="Describe the decision, tension, negotiation, or money situation…"
             />
             <Button type="submit" size="lg" disabled={!ready}>
-              ANALYZE FREE <ArrowRight />
+              FIND MY NEXT MOVE <ArrowRight />
             </Button>
+            <p className="text-xs text-muted-foreground" aria-live="polite">
+              {ready
+                ? prompt.trim().length >= 40
+                  ? "No card required. A free account is needed to run and save your analysis."
+                  : `Add more context on the next step (${prompt.trim().length}/40 characters).`
+                : "Start with a few words. You can add the details on the next step."}
+            </p>
             <p className="flex items-center gap-2 text-[11px] text-muted-foreground">
               <ShieldCheck className="size-3" /> No card required. Your situation stays private.
             </p>
