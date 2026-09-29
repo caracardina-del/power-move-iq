@@ -57,7 +57,7 @@ function Bullets({ label, items }: { label: string; items: string[] }) {
   return (
     <div className="mt-5">
       <p className="eyebrow">{label}</p>
-      <ul className="grid gap-2 text-sm leading-7 text-muted-foreground">
+      <ul className="grid gap-2 text-sm leading-7 opacity-85">
         {items.map((x, i) => (
           <li key={i}>— {x}</li>
         ))}
@@ -197,6 +197,14 @@ function RealCase({ id }: { id: string }) {
           <span>{date}</span>
         </div>
         <p className="mt-6 max-w-2xl text-sm leading-7 text-muted-foreground">“{row.situation}”</p>
+        {row.context.parent_id && (
+          <p className="mt-3 text-xs">
+            Follow-up to{" "}
+            <Link to="/analysis/$caseId" params={{ caseId: row.context.parent_id }} className="text-link">
+              the original case
+            </Link>
+          </p>
+        )}
         <div className="mt-7 flex gap-2">
           <Button variant="ghost" asChild>
             <Link to="/analyze" search={{ prompt: "" }}>

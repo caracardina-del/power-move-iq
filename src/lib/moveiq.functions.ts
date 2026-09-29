@@ -64,10 +64,15 @@ export const runAnalysis = createServerFn({ method: "POST" })
     if (data.parentId) {
       const { data: parent } = await supabase
         .from("analyses")
-        .select("situation, result")
+        .select("situation, result, context")
         .eq("id", data.parentId)
         .maybeSingle();
       if (!parent) return { ok: false as const, error: "Original case not found." };
+      const pc = (parent.context ?? {}) as { type?: string; urgency?: string };
+      const t = SITUATION_TYPES.find((x) => x === pc.type);
+      const u = URGENCIES.find((x) => x === pc.urgency);
+      if (t) data.type = t;
+      if (u) data.urgency = u;
       prior = `Original situation: ${parent.situation}\nPrior recommendation: ${JSON.stringify((parent.result as { analysis?: { move?: unknown } })?.analysis?.move ?? {})}\nWhat happened since: ${data.update ?? ""}`;
     }
     try {

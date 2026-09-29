@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/power/shell";
 import { ProGate, StatePanel } from "@/components/power/ui";
 import { useAuthUser } from "@/hooks/use-auth-user";
 import { listCases } from "@/lib/moveiq.functions";
+import { supabase } from "@/integrations/supabase/client";
 export const Route = createFileRoute("/saved")({
   head: () => ({
     meta: [
@@ -132,6 +133,59 @@ function Saved() {
         }
       />
       {body}
+      {user && <SavedMoves userId={user.id} />}
     </div>
+  );
+}
+
+type Fav = { move_id: number; moves: { move_number: number; title: string; category: string; principle: string } | null };
+function SavedMoves({ userId }: { userId: string }) {
+  const [rows, setRows] = useState<Fav[] | null>(null);
+  const [err, setErr] = useState(false);
+  useEffect(() => {
+    void supabase
+      .from("favorite_moves")
+      .select("move_id, moves(move_number, title, category, principle)")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .then(({ data, error }) => (error ? setErr(true) : setRows((data ?? []) as Fav[])));
+  }, [userId]);
+  async function remove(id: number) {
+    const prev = rows;
+    setRows((r) => r?.filter((x) => x.move_id !== id) ?? null);
+    const { error } = await supabase.from("favorite_moves").delete().eq("user_id", userId).eq("move_id", id);
+    if (error) setRows(prev);
+  }
+  return (
+    <section className="mt-14">
+      <p className="eyebrow">SAVED MOVES</p>
+      {err ? (
+        <p className="text-sm text-muted-foreground">Saved moves could not be loaded. Refresh to try again.</p>
+      ) : !rows ? (
+        <p className="text-sm text-muted-foreground">Loading…</p>
+      ) : !rows.length ? (
+        <p className="text-sm text-muted-foreground">
+          No saved moves yet. Use the bookmark on{" "}
+          <Link to="/today" className="text-link">Today</Link> to keep a move here.
+        </p>
+      ) : (
+        <div className="case-list">
+          {rows.map((r) => (
+            <div className="case-row" key={r.move_id}>
+              <span className="case-type">
+                MOVE {r.moves?.move_number} · {r.moves?.category}
+              </span>
+              <div>
+                <h3>{r.moves?.title.replace(/\s*·\s*\d+$/, "")}</h3>
+                <p>{r.moves?.principle}</p>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => remove(r.move_id)}>
+                REMOVE
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }

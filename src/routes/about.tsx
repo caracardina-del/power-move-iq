@@ -1,4 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { ArrowRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 export const Route = createFileRoute("/about")({
   head: () => ({
     meta: [
@@ -40,11 +42,21 @@ function About() {
         employment, or other professional advice. Your context matters; consult a qualified
         professional where appropriate.
       </p>
-      <h2>Independent by design</h2>
+      <h2>The moment after something changes is when judgment matters most.</h2>
       <p>
-        Power Move IQ is an independent project and is not affiliated with Donald J. Trump, the
-        Trump Organization, any campaign, or Robert Greene. No endorsement is stated or implied.
+        A client goes silent. An offer comes in low. A negotiation stalls. Someone changes the
+        terms. Power Move IQ helps you separate facts from assumptions, understand the leverage on
+        both sides, and determine what to do—and what to say—next.
       </p>
+      <p className="eyebrow mt-8">
+        READ THE SITUATION → MAP THE LEVERAGE → CHOOSE THE MOVE → PREPARE THE RESPONSE → RECORD THE
+        OUTCOME
+      </p>
+      <Button asChild size="lg" className="mt-6">
+        <Link to="/analyze" search={{ prompt: "" }}>
+          ANALYZE MY SITUATION <ArrowRight />
+        </Link>
+      </Button>
     </div>
   );
 }

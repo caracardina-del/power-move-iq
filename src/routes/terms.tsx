@@ -48,11 +48,6 @@ function Terms() {
         cancelled from Account → Manage subscription. Account deletion is handled manually on
         request and confirmed by email.
       </p>
-      <h2>Independence</h2>
-      <p>
-        Power Move IQ is an independent project and is not affiliated with Donald J. Trump, the
-        Trump Organization, any campaign, or Robert Greene. No endorsement is stated or implied.
-      </p>
     </div>
   );
 }

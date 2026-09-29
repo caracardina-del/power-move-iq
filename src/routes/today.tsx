@@ -2,7 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Bookmark, Share2, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/power/shell";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthUser } from "@/hooks/use-auth-user";
 function useStreak() {
@@ -54,40 +55,132 @@ export const Route = createFileRoute("/today")({
   }),
   component: Today,
 });
+type DailyMove = { id: number; move_number: number; title: string; category: string; principle: string; field_note: string };
+function dayOfYear() {
+  const d = new Date();
+  return Math.floor((Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) - Date.UTC(d.getFullYear(), 0, 0)) / 86400000);
+}
 function Today() {
   const { user, s } = useStreak();
+  const nav = useNavigate();
+  const [move, setMove] = useState<DailyMove | null>(null);
+  const [moveErr, setMoveErr] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState("");
+  const num = ((dayOfYear() - 1) % 90) + 1;
   const day = new Date().toLocaleDateString("en-US", { weekday: "long" }).toUpperCase();
+  const loadMove = useCallback(() => {
+    setMoveErr(false);
+    void supabase
+      .from("moves")
+      .select("id, move_number, title, category, principle, field_note")
+      .eq("move_number", num)
+      .maybeSingle()
+      .then(({ data, error }) => (error || !data ? setMoveErr(true) : setMove(data)));
+  }, [num]);
+  useEffect(loadMove, [loadMove]);
+  useEffect(() => {
+    if (!user || !move) return setSaved(false);
+    void supabase
+      .from("favorite_moves")
+      .select("move_id")
+      .eq("user_id", user.id)
+      .eq("move_id", move.id)
+      .maybeSingle()
+      .then(({ data }) => setSaved(!!data));
+  }, [user, move]);
+  const timer = useRef<number | undefined>(undefined);
+  function flash(t: string) {
+    setNote(t);
+    window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => setNote(""), 2500);
+  }
+  async function toggleSave() {
+    if (!move || busy) return;
+    if (!user) {
+      await nav({ to: "/auth" });
+      return;
+    }
+    const next = !saved;
+    setSaved(next);
+    setBusy(true);
+    const { error } = next
+      ? await supabase.from("favorite_moves").insert({ user_id: user.id, move_id: move.id })
+      : await supabase.from("favorite_moves").delete().eq("user_id", user.id).eq("move_id", move.id);
+    setBusy(false);
+    if (error && !(next && error.code === "23505")) {
+      setSaved(!next);
+      flash("Could not update. Please try again.");
+    } else flash(next ? "Saved to your moves." : "Removed from saved moves.");
+  }
+  async function share() {
+    const url = `${window.location.origin}/today`;
+    const title = move ? `${move.title} — Power Move IQ` : "Power Move IQ — Today";
+    if (navigator.share) {
+      try {
+        await navigator.share({ title, url });
+        return;
+      } catch (e) {
+        if ((e as Error).name === "AbortError") return;
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      flash("Link copied.");
+    } catch {
+      flash(url);
+    }
+  }
   return (
     <div className="page-shell">
       <PageHeader
-        eyebrow={`${day} · MOVE 25 OF 90`}
+        eyebrow={`${day} · DAILY MOVE`}
         title="Today"
         intro="One precise idea to sharpen the way you negotiate, decide, and respond."
       />
       <div className="today-grid">
         <article className="daily-move">
-          <div className="daily-number">25</div>
-          <p className="eyebrow">NEGOTIATION · 4 MIN READ</p>
-          <h2>Don’t negotiate against yourself.</h2>
-          <p>
-            After a clear proposal, silence is not a problem you must solve. Let the other side
-            respond before you improve an offer they have not rejected.
-          </p>
-          <div className="move-actions">
-            <small>
-              FIELD NOTE
-              <br />
-              Hold the silence for one full beat.
-            </small>
-            <div>
-              <Button variant="ghost" size="icon" aria-label="Save move">
-                <Bookmark />
-              </Button>
-              <Button variant="ghost" size="icon" aria-label="Share move">
-                <Share2 />
-              </Button>
-            </div>
+          <div className="daily-number" aria-label={`Move number ${num} of 90`}>
+            {String(num).padStart(2, "0")}
           </div>
+          {moveErr ? (
+            <>
+              <h2>Today’s move could not be loaded.</h2>
+              <Button variant="editorial" onClick={loadMove}>RETRY</Button>
+            </>
+          ) : !move ? (
+            <p className="eyebrow">LOADING TODAY’S MOVE…</p>
+          ) : (
+            <>
+              <p className="eyebrow">{move.category.toUpperCase()} · MOVE {num} OF 90</p>
+              <h2>{move.title.replace(/\s*·\s*\d+$/, "")}</h2>
+              <p>{move.principle}</p>
+              <div className="move-actions">
+                <small>
+                  FIELD NOTE
+                  <br />
+                  {move.field_note}
+                </small>
+                <div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label={saved ? "Remove from saved moves" : user ? "Save move" : "Sign in to save move"}
+                    aria-pressed={saved}
+                    onClick={toggleSave}
+                    disabled={busy}
+                  >
+                    <Bookmark className={saved ? "fill-current" : ""} />
+                  </Button>
+                  <Button variant="ghost" size="icon" aria-label="Share move" onClick={share}>
+                    <Share2 />
+                  </Button>
+                </div>
+              </div>
+              <p className="mt-3 min-h-5 text-xs" aria-live="polite">{note}</p>
+            </>
+          )}
         </article>
         <aside>
           <div className="streak-card">
@@ -95,7 +188,7 @@ function Today() {
             <div>
               <span className="streak-value">{s?.cur ?? 0}</span> <small>DAYS</small>
             </div>
-            <div className="week-dots">
+            <div className="week-dots" aria-hidden="true">
               {Array.from({ length: 7 }, (_, i) => (i < Math.min(s?.cur ?? 0, 7) ? 1 : 0)).map(
                 (x, i) => (
                   <i key={i} className={x ? "on" : ""} />
@@ -103,7 +196,9 @@ function Today() {
               )}
             </div>
             <small>
-              {user ? `Longest streak · ${s?.long ?? 0} days` : "Sign in to track your streak"}
+              {user ? `Longest streak · ${s?.long ?? 0} days · counts days you open Today` : (
+                <Link to="/auth" className="text-link">Sign in to track your streak</Link>
+              )}
             </small>
           </div>
           <div className="lens-card">
