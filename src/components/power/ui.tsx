@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { LockKeyhole } from "lucide-react";
 import { useEntitlement } from "@/hooks/use-entitlement";
 import { checkoutUrl } from "@/lib/billing";
+const RETURN_KEY = "pmiq:return-after-auth";
 export function GoldRule() {
   return <div className="gold-rule" />;
 }
@@ -43,16 +44,16 @@ export function ProGate({ title, body }: { title: string; body: string }) {
     </StatePanel>
   );
 }
+function rememberCheckout(plan: "monthly" | "annual") {
+  window.sessionStorage.setItem(RETURN_KEY, `checkout:${plan}`);
+}
 export function PricingCard() {
   const { user, tier, loading } = useEntitlement();
   return (
     <div className="pricing-card">
       <p className="eyebrow">POWER MOVE IQ PRO</p>
       <h3>Decisions compound.</h3>
-      <p>
-        Full analyses, Power Maps, scripts, countermoves, saved cases, Outcome Memory, follow-ups,
-        and Weekly IQ.
-      </p>
+      <p>Full analyses, Power Maps, scripts, countermoves, saved cases, Outcome Memory, follow-ups, and Weekly IQ.</p>
       <div className="price-row">
         <strong>$14.99</strong>
         <span>/ month</span>
@@ -82,12 +83,14 @@ export function PricingCard() {
         </div>
       ) : (
         <Button asChild size="lg" className="w-full">
-          <Link to="/auth">SIGN IN TO START PRO</Link>
+          <Link to="/auth" onClick={() => rememberCheckout("monthly")}>
+            START PRO · $14.99 / MONTH
+          </Link>
         </Button>
       )}
       <small>
-        Secure checkout by Stripe. Renews automatically each month or year until cancelled. Pro
-        activates once Stripe confirms payment.
+        Secure checkout by Stripe. Renews automatically each month or year until cancelled. Pro activates once Stripe
+        confirms payment.
       </small>
     </div>
   );
