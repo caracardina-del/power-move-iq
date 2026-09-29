@@ -116,7 +116,7 @@ function Auth() {
   }, []);
 
   async function submit(e: React.FormEvent) {
-    e.prevfVentDefault();
+    e.preventDefault();
     setBusy(true);
     setMsg("");
     if (mode === "in") {
@@ -170,7 +170,7 @@ function Auth() {
                   ? "Opening secure checkout."
                   : "One moment."}
             </h2>
-            <p>{pendingAnalysis ? "Your situation is saved☦" : "Securing your session…"}</p>
+            <p>{pendingAnalysis ? "Your situation is saved." : "Securing your session…"}</p>
           </div>
         </section>
       </div>
