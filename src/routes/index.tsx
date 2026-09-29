@@ -1,8 +1,10 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight } from "lucide-react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
+import { ArrowRight, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { OwlSlot } from "@/components/power/brand";
 import { situations } from "@/lib/power-move-data";
+
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
@@ -22,7 +24,18 @@ export const Route = createFileRoute("/")({
   }),
   component: Home,
 });
+
 function Home() {
+  const [prompt, setPrompt] = useState("");
+  const nav = useNavigate();
+  const ready = prompt.trim().length >= 40;
+
+  async function begin(e: React.FormEvent) {
+    e.preventDefault();
+    if (!ready) return;
+    await nav({ to: "/analyze", search: { prompt: prompt.trim() } });
+  }
+
   return (
     <>
       <section className="hero">
@@ -34,14 +47,27 @@ function Home() {
             MOVE IQ<span>KNOW YOUR NEXT MOVE.</span>
           </h1>
           <p className="hero-lede">
-            When the stakes change, don’t guess. Map the situation, understand your leverage, and
-            choose your next move.
+            When the stakes change, don’t guess. Map the situation, understand your leverage, and choose your next move.
           </p>
-          <Button asChild size="lg">
-            <Link to="/analyze" search={{ prompt: "" }}>
-              ANALYZE MY SITUATION <ArrowRight />
-            </Link>
-          </Button>
+          <form className="mt-6 grid gap-3" onSubmit={begin}>
+            <label className="eyebrow" htmlFor="home-situation">
+              WHAT ARE YOU DEALING WITH?
+            </label>
+            <textarea
+              id="home-situation"
+              className="field min-h-28 resize-y"
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              maxLength={6000}
+              placeholder="Describe the decision, tension, negotiation, or money situation…"
+            />
+            <Button type="submit" size="lg" disabled={!ready}>
+              ANALYZE FREE <ArrowRight />
+            </Button>
+            <p className="flex items-center gap-2 text-[11px] text-muted-foreground">
+              <ShieldCheck className="size-3" /> No card required. Your situation stays private.
+            </p>
+          </form>
         </div>
         <div className="hero-medallion">
           <OwlSlot />
