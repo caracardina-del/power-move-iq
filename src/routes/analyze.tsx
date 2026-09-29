@@ -73,6 +73,11 @@ function Analyze() {
   const entFn = useServerFn(getEntitlement);
 
   useEffect(() => {
+    const draft = window.sessionStorage.getItem("pmiq:home-draft");
+    if (draft) setText(draft);
+  }, []);
+
+  useEffect(() => {
     if (user)
       void entFn()
         .then(setEnt)
@@ -107,6 +112,7 @@ function Analyze() {
 
   async function submit() {
     if (tooShort || loading || !ready) return;
+    window.sessionStorage.removeItem("pmiq:home-draft");
     setError("");
     const draft: PendingAnalysis = { situation: text.trim(), type, urgency };
 
@@ -173,16 +179,24 @@ function Analyze() {
             </select>
           </div>
           <Button size="lg" onClick={submit} disabled={tooShort || loading || outOfFree || !ready}>
-            {loading ? "MAPPING THE SITUATION…" : error ? "TRY AGAIN" : user ? "ANALYZE MY SITUATION" : "ANALYZE FREE"}{" "}
+            {loading
+              ? "MAPPING THE SITUATION…"
+              : error
+                ? "TRY AGAIN"
+                : user
+                  ? "ANALYZE MY SITUATION"
+                  : "CREATE ACCOUNT TO GET MY READ"}{" "}
             {!loading && <ArrowRight />}
           </Button>
           {!user && ready && (
             <p className="mt-3 text-xs text-muted-foreground">
-              No card required · 3 limited analyses included each month.
+              No card required · Three introductory strategic reads included each month.
             </p>
           )}
           {text.trim().length > 0 && tooShort && (
-            <p className="mt-3 text-xs text-muted-foreground">Add a little more detail — at least 40 characters.</p>
+            <p className="mt-3 text-xs text-muted-foreground">
+              Add who is involved, what happened, and what you want next — {text.trim().length}/40 characters.
+            </p>
           )}
           {ent?.tier === "free" && (
             <p className="mt-3 text-xs text-muted-foreground">
