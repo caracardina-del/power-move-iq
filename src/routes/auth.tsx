@@ -3,11 +3,19 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
+import { checkoutUrl } from "@/lib/billing";
+
+const RETURN_KEY = "pmiq:return-after-auth";
+const RESUME_KEY = "pmiq:resume-analysis";
+
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
       { title: "Sign in — Power Move IQ" },
-      { name: "description", content: "Sign in or create your Power Move IQ account." },
+      {
+        name: "description",
+        content: "Sign in or create your Power Move IQ account.",
+      },
       { property: "og:title", content: "Sign in — Power Move IQ" },
       {
         property: "og:description",
@@ -19,8 +27,14 @@ export const Route = createFileRoute("/auth")({
   }),
   component: Auth,
 });
+
+function getReturnIntent() {
+  if (typeof window === "undefined") return null;
+  return window.sessionStorage.getItem(RETURN_KEY);
+}
+
 function Auth() {
-  const [mode, setMode] = useState<"in" | "up">("in");
+  const [mode, setMode] = useState<"in" | "up">(() => (getReturnIntent() ? "up" : "in"));
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -28,8 +42,28 @@ function Auth() {
   const [busy, setBusy] = useState(false);
   const [finishing, setFinishing] = useState(false);
   const nav = useNavigate();
+  const returnIntent = getReturnIntent();
+  const pendingAnalysis = returnIntent === "analyze";
+  const pendingCheckout = returnIntent?.startsWith("checkout:") ?? false;
 
-  // Consume an OAuth return (#access_token=… or ?code=…), persist the session, clean the URL.
+  async function continueAfterAuth(knownUser?: { id: string; email?: string | null }) {
+    const intent = getReturnIntent();
+    const user = knownUser ?? (await supabase.auth.getUser()).data.user;
+    if (intent === "analyze") {
+      window.sessionStorage.removeItem(RETURN_KEY);
+      window.sessionStorage.setItem(RESUME_KEY, "1");
+      window.location.assign("/analyze");
+      return;
+    }
+    if (intent?.startsWith("checkout:") && user) {
+      const plan = intent.endsWith("annual") ? "annual" : "monthly";
+      window.sessionStorage.removeItem(RETURN_KEY);
+      window.location.assign(checkoutUrl(plan, user));
+      return;
+    }
+    await nav({ to: "/account", replace: true });
+  }
+
   useEffect(() => {
     let alive = true;
     const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
@@ -47,7 +81,10 @@ function Auth() {
       }
       if (access_token && refresh_token) {
         setFinishing(true);
-        const { error } = await supabase.auth.setSession({ access_token, refresh_token });
+        const { error } = await supabase.auth.setSession({
+          access_token,
+          refresh_token,
+        });
         clean();
         if (error) {
           if (alive) {
@@ -70,22 +107,25 @@ function Auth() {
       }
       const { data } = await supabase.auth.getUser();
       if (!alive) return;
-      if (data.user) await nav({ to: "/account", replace: true });
+      if (data.user) await continueAfterAuth(data.user);
       else setFinishing(false);
     })();
     return () => {
       alive = false;
     };
-  }, [nav]);
+  }, []);
 
   async function submit(e: React.FormEvent) {
-    e.preventDefault();
+    e.prevfVentDefault();
     setBusy(true);
     setMsg("");
     if (mode === "in") {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
       if (error) setMsg(error.message);
-      else await nav({ to: "/account" });
+      else if (data.user) await continueAfterAuth(data.user);
     } else {
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -96,12 +136,12 @@ function Auth() {
         },
       });
       if (error) setMsg(error.message);
-      else if (!data.session)
-        setMsg("Check your email to confirm your account, then return to sign in.");
-      else await nav({ to: "/account" });
+      else if (!data.session) setMsg("Check your email to confirm your free account. Your situation is saved here.");
+      else if (data.user) await continueAfterAuth(data.user);
     }
     setBusy(false);
   }
+
   async function google() {
     setMsg("");
     const result = await lovable.auth.signInWithOAuth("google", {
@@ -113,21 +153,29 @@ function Auth() {
     }
     if (result.redirected) return;
     const { data } = await supabase.auth.getUser();
-    if (data.user) await nav({ to: "/account" });
+    if (data.user) await continueAfterAuth(data.user);
     else setMsg("Google sign-in couldn't be completed. Please try again.");
   }
+
   if (finishing)
     return (
       <div className="auth-wrap">
         <section className="auth-form">
           <div className="auth-card" role="status">
             <p className="eyebrow">SIGNING YOU IN</p>
-            <h2>One moment.</h2>
-            <p>Securing your session…</p>
+            <h2>
+              {pendingAnalysis
+                ? "Preparing your analysis."
+                : pendingCheckout
+                  ? "Opening secure checkout."
+                  : "One moment."}
+            </h2>
+            <p>{pendingAnalysis ? "Your situation is saved☦" : "Securing your session…"}</p>
           </div>
         </section>
       </div>
     );
+
   return (
     <div className="auth-wrap">
       <section className="auth-brand">
@@ -145,12 +193,36 @@ function Auth() {
       </section>
       <section className="auth-form">
         <div className="auth-card">
-          <p className="eyebrow">{mode === "in" ? "WELCOME BACK" : "CREATE YOUR ACCOUNT"}</p>
-          <h2>{mode === "in" ? "Continue thinking clearly." : "Keep what you learn."}</h2>
+          <p className="eyebrow">
+            {pendingAnalysis
+              ? "YOUR SITUATION IS READY"
+              : pendingCheckout
+                ? "CONTINUE TO PRO"
+                : mode === "in"
+                  ? "WELCOME BACK"
+                  : "CREATE YOUR ACCOUNT"}
+          </p>
+          <h2>
+            {pendingAnalysis
+              ? mode === "up"
+                ? "Create a free account to reveal your analysis."
+                : "Sign in to reveal your analysis."
+              : pendingCheckout
+                ? mode === "up"
+                  ? "Create your account to continue to secure checkout."
+                  : "Sign in to continue to secure checkout."
+                : mode === "in"
+                  ? "Continue thinking clearly."
+                  : "Keep what you learn."}
+          </h2>
           <p>
-            {mode === "in"
-              ? "Your cases and outcomes are waiting."
-              : "No onboarding maze. Start with your first decision."}
+            {pendingAnalysis
+              ? "Your full situation is saved. No card required. Free includes 3 limited analyses each month."
+              : pendingCheckout
+                ? "Your selected plan is saved. You will review the price again on Stripe before paying."
+                : mode === "in"
+                  ? "Your cases and outcomes are waiting."
+                  : "No onboarding maze. Start with your first decision."}
           </p>
           <Button variant="outline" className="w-full" onClick={google}>
             CONTINUE WITH GOOGLE
@@ -184,7 +256,7 @@ function Auth() {
               required
             />
             <Button type="submit" disabled={busy}>
-              {busy ? "PLEASE WAIT…" : mode === "in" ? "SIGN IN" : "CREATE ACCOUNT"}
+              {busy ? "PLEASE WAIT…" : mode === "in" ? "SIGN IN" : "CREATE FREE ACCOUNT"}
             </Button>
           </form>
           {msg && <div className="auth-msg mt-4">{msg}</div>}
@@ -194,7 +266,7 @@ function Auth() {
               className="text-link bg-transparent border-0 cursor-pointer"
               onClick={() => setMode(mode === "in" ? "up" : "in")}
             >
-              {mode === "in" ? "Create an account" : "Sign in"}
+              {mode === "in" ? "Create a free account" : "Sign in"}
             </button>
           </p>
           <p className="mt-8 text-[10px] leading-5 text-muted-foreground">
