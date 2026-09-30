@@ -102,9 +102,7 @@ function Analyze() {
         await nav({ to: "/analysis/$caseId", params: { caseId: result.id } });
       } else setError(result.error);
     } catch {
-      setError(
-        "The analysis could not be completed. Check your connection or sign in again, then retry.",
-      );
+      setError("The analysis could not be completed. Check your connection or sign in again, then retry.");
     } finally {
       inFlight.current = false;
       setLoading(false);
@@ -133,9 +131,7 @@ function Analyze() {
   async function submit() {
     if (loading || inFlight.current || !ready) return;
     if (tooShort) {
-      setError(
-        "Add who is involved, what happened, and what you want next (at least 40 characters).",
-      );
+      setError("Add who is involved, what happened, and what you want next (at least 40 characters).");
       return;
     }
     setError("");
@@ -147,7 +143,8 @@ function Analyze() {
 
     const prior = readGuest();
     if (prior) {
-      if (prior.situation === draft.situation) return void nav({ to: "/analysis/$caseId", params: { caseId: "guest" } });
+      if (prior.situation === draft.situation)
+        return void nav({ to: "/analysis/$caseId", params: { caseId: "guest" } });
       setNeedsAccount(true);
       setError("Your free analysis has been used. Create a free account to analyze another situation.");
       return;
@@ -207,9 +204,7 @@ function Analyze() {
           />
           {pendingQuick && (
             <div className="auth-msg mt-3" role="dialog" aria-label="Replace your text?">
-              <p className="text-sm">
-                Replace your current text with “{pendingQuick}”?
-              </p>
+              <p className="text-sm">Replace your current text with “{pendingQuick}”?</p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <Button
                   size="sm"
@@ -256,31 +251,24 @@ function Analyze() {
               ))}
             </select>
           </div>
-          <Button
-            size="lg"
-            onClick={submit}
-            disabled={loading || outOfFree || !ready}
-            aria-busy={loading}
-          >
+          <Button size="lg" onClick={submit} disabled={loading || outOfFree || !ready} aria-busy={loading}>
             {loading ? "MAPPING THE SITUATION…" : error && !needsAccount ? "RETRY" : "ANALYZE MY SITUATION"}{" "}
             {!loading && <ArrowRight />}
           </Button>
           {!user && ready && (
             <p className="mt-3 text-xs text-muted-foreground">
-              Your first analysis is free — no account needed. Create a free account afterward to
-              save it.
+              Your first analysis is free — no account needed. Create a free account afterward to save it.
             </p>
           )}
           {text.trim().length > 0 && tooShort && (
             <p className="mt-3 text-xs text-muted-foreground">
-              Add who is involved, what happened, and what you want next —{" "}
-              {text.trim().length}/40 characters.
+              Add who is involved, what happened, and what you want next — {text.trim().length}/40 characters.
             </p>
           )}
           {ent?.tier === "free" && (
             <p className="mt-3 text-xs text-muted-foreground">
-              Free plan: {Math.min(ent.usedThisMonth, ent.freeLimit)} of {ent.freeLimit} limited
-              analyses used this month.{" "}
+              Free plan: {Math.min(ent.usedThisMonth, ent.freeLimit)} of {ent.freeLimit} limited analyses used this
+              month.{" "}
               <Link to="/pricing" className="text-link">
                 Pro unlocks the full read.
               </Link>
@@ -306,8 +294,8 @@ function Analyze() {
             </div>
           )}
           <p className="mt-4 flex items-center gap-2 text-[10px] text-muted-foreground">
-            <ShieldCheck className="size-3" /> Your situation stays on this device and in your
-            private account — never in links.
+            <ShieldCheck className="size-3" /> Your situation is processed to generate your analysis and stored
+            privately so you can save it after sign-in. Never in a public link.
           </p>
           <div className="mt-8">
             <p className="eyebrow">QUICK START</p>
@@ -342,8 +330,8 @@ function Analyze() {
             ))}
           </ol>
           <p className="text-xs leading-6 text-muted-foreground">
-            Free reads include The Read, The Move, and Don’t Do This. Pro unlocks every layer.
-            Educational decision-support. Not legal, financial, or employment advice.
+            Free reads include The Read, The Move, and Don’t Do This. Pro unlocks every layer. Educational
+            decision-support. Not legal, financial, or employment advice.
           </p>
         </aside>
       </div>
