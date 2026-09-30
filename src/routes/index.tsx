@@ -32,8 +32,8 @@ function Home() {
 
   async function begin(e: React.FormEvent) {
     e.preventDefault();
-    if (!ready) return;
-    window.sessionStorage.setItem("pmiq:home-draft", prompt.trim());
+    if (ready) window.sessionStorage.setItem("pmiq:home-draft", prompt.trim());
+    else window.sessionStorage.removeItem("pmiq:home-draft");
     await nav({ to: "/analyze", search: { prompt: "" } });
   }
 
@@ -50,35 +50,45 @@ function Home() {
           <p className="hero-lede">
             When the stakes change, don’t guess. Map the situation, understand your leverage, and choose your next move.
           </p>
-          <form className="mt-6 grid gap-3" onSubmit={begin}>
-            <label className="eyebrow" htmlFor="home-situation">
+          <Button asChild size="lg">
+            <Link to="/analyze" search={{ prompt: "" }}>
+              ANALYZE MY SITUATION <ArrowRight />
+            </Link>
+          </Button>
+        </div>
+        <div className="hero-medallion">
+          <OwlSlot />
+        </div>
+      </section>
+      <section className="border-t border-border px-[7vw] py-14 md:py-20">
+        <div className="mx-auto grid max-w-6xl gap-8 md:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)] md:items-center md:gap-14">
+          <div>
+            <p className="eyebrow">YOUR SITUATION</p>
+            <h2 className="serif m-0 text-4xl leading-none md:text-5xl">Start with what happened.</h2>
+            <p className="mt-5 max-w-md text-sm leading-relaxed text-muted-foreground">
+              Write in your own words. Your draft carries into the strategic read and stays private.
+            </p>
+          </div>
+          <form className="grid gap-3" onSubmit={begin}>
+            <label className="eyebrow !mb-0" htmlFor="home-situation">
               WHAT ARE YOU DEALING WITH?
             </label>
             <textarea
               id="home-situation"
-              className="field min-h-28 resize-y"
+              className="field min-h-24 resize-y"
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               maxLength={6000}
               placeholder="Describe the decision, tension, negotiation, or money situation…"
             />
-            <Button type="submit" size="lg" disabled={!ready}>
+            <Button type="submit" size="lg">
               ANALYZE MY SITUATION <ArrowRight />
             </Button>
-            <p className="text-xs text-muted-foreground" aria-live="polite">
-              {ready
-                ? prompt.trim().length >= 40
-                  ? "No card required. A free account is needed to run and save your analysis."
-                  : `Add more context on the next step (${prompt.trim().length}/40 characters).`
-                : "Start with a few words. You can add the details on the next step."}
-            </p>
-            <p className="flex items-center gap-2 text-[11px] text-muted-foreground">
-              <ShieldCheck className="size-3" /> No card required. Your situation stays private.
+            <p className="flex items-center gap-2 text-xs text-muted-foreground">
+              <ShieldCheck className="size-3" /> No card required. A free account is needed to run and save your
+              analysis.
             </p>
           </form>
-        </div>
-        <div className="hero-medallion">
-          <OwlSlot />
         </div>
       </section>
       <section className="chips-band">
