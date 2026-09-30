@@ -130,6 +130,10 @@ function Analyze() {
 
   async function submit() {
     if (loading || inFlight.current || !ready) return;
+    if (outOfFree) {
+      setError("You have used your free analyses for this month. Pro unlocks the full read.");
+      return;
+    }
     if (tooShort) {
       setError("Add who is involved, what happened, and what you want next (at least 40 characters).");
       return;
@@ -251,7 +255,7 @@ function Analyze() {
               ))}
             </select>
           </div>
-          <Button size="lg" onClick={submit} disabled={loading || outOfFree || !ready} aria-busy={loading}>
+          <Button size="lg" onClick={submit} disabled={loading || !ready} aria-busy={loading}>
             {loading ? "MAPPING THE SITUATION…" : error && !needsAccount ? "RETRY" : "ANALYZE MY SITUATION"}{" "}
             {!loading && <ArrowRight />}
           </Button>
