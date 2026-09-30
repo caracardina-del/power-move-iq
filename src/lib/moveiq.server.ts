@@ -4,7 +4,17 @@ import { analysisSchema, type FullAnalysis } from "./moveiq-schema";
 
 export async function getTier(supabase: SupabaseClient<Database>, userId: string): Promise<"free" | "pro"> {
   const { data } = await supabase.from("profiles").select("subscription_tier").eq("id", userId).maybeSingle();
-  return data?.subscription_tier === "pro" ? "pro" : "free";
+  if (data?.subscription_tier === "pro") return "pro";
+  // Fallback: a verified, still-active Stripe subscription row (written only by the signed webhook).
+  const { data: subs } = await supabase
+    .from("stripe_subscriptions")
+    .select("status, current_period_end")
+    .eq("user_id", userId)
+    .in("status", ["active", "trialing", "past_due"]);
+  const now = Date.now();
+  return (subs ?? []).some((s) => !s.current_period_end || new Date(s.current_period_end).getTime() > now - 3 * 86400000)
+    ? "pro"
+    : "free";
 }
 
 const SYSTEM = `You are MOVE IQ, an educational decision-support analyst for professional and money situations (negotiations, pricing, salary, clients, boundaries).
