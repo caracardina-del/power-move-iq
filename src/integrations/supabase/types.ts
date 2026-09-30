@@ -82,6 +82,42 @@ export type Database = {
           },
         ]
       }
+      guest_analyses: {
+        Row: {
+          claim_hash: string
+          claimed_analysis_id: string | null
+          claimed_by: string | null
+          client_hash: string
+          context: Json
+          created_at: string
+          id: string
+          result: Json
+          situation: string
+        }
+        Insert: {
+          claim_hash: string
+          claimed_analysis_id?: string | null
+          claimed_by?: string | null
+          client_hash: string
+          context?: Json
+          created_at?: string
+          id?: string
+          result: Json
+          situation: string
+        }
+        Update: {
+          claim_hash?: string
+          claimed_analysis_id?: string | null
+          claimed_by?: string | null
+          client_hash?: string
+          context?: Json
+          created_at?: string
+          id?: string
+          result?: Json
+          situation?: string
+        }
+        Relationships: []
+      }
       moves: {
         Row: {
           action_prompt: string

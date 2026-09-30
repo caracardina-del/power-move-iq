@@ -4,6 +4,7 @@ import { ArrowRight, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { OwlSlot } from "@/components/power/brand";
 import { situations } from "@/lib/power-move-data";
+import { readDraft, writeDraft } from "@/lib/guest-store";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -32,8 +33,10 @@ function Home() {
 
   async function begin(e: React.FormEvent) {
     e.preventDefault();
-    if (ready) window.sessionStorage.setItem("pmiq:home-draft", prompt.trim());
-    else window.sessionStorage.removeItem("pmiq:home-draft");
+    if (ready) {
+      const prev = readDraft();
+      writeDraft({ situation: prompt.trim(), type: prev?.type ?? "Other", urgency: prev?.urgency ?? "Exploring options" });
+    }
     await nav({ to: "/analyze", search: { prompt: "" } });
   }
 

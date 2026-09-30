@@ -4,7 +4,17 @@ import { analysisSchema, type FullAnalysis } from "./moveiq-schema";
 
 export async function getTier(supabase: SupabaseClient<Database>, userId: string): Promise<"free" | "pro"> {
   const { data } = await supabase.from("profiles").select("subscription_tier").eq("id", userId).maybeSingle();
-  return data?.subscription_tier === "pro" ? "pro" : "free";
+  if (data?.subscription_tier === "pro") return "pro";
+  // Fallback: a verified, still-active Stripe subscription row (written only by the signed webhook).
+  const { data: subs } = await supabase
+    .from("stripe_subscriptions")
+    .select("status, current_period_end")
+    .eq("user_id", userId)
+    .in("status", ["active", "trialing", "past_due"]);
+  const now = Date.now();
+  return (subs ?? []).some((s) => !s.current_period_end || new Date(s.current_period_end).getTime() > now - 3 * 86400000)
+    ? "pro"
+    : "free";
 }
 
 const SYSTEM = `You are MOVE IQ, an educational decision-support analyst for professional and money situations (negotiations, pricing, salary, clients, boundaries).
@@ -40,18 +50,25 @@ export async function generateAnalysis(input: {
   if (!key) throw new AnalysisError("Analysis is temporarily unavailable.");
   const user = `Situation type: ${input.type}\nUrgency: ${input.urgency}\n${input.prior ? `PRIOR ANALYSIS AND WHAT HAPPENED SINCE (this is a follow-up):\n${input.prior}\n\n` : ""}Situation:\n${input.situation}`;
   for (let attempt = 0; attempt < 2; attempt++) {
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: SYSTEM },
-          { role: "user", content: user },
-        ],
-        response_format: { type: "json_object" },
-      }),
-    });
+    let res: Response;
+    try {
+      res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+        signal: AbortSignal.timeout(60000),
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            { role: "system", content: SYSTEM },
+            { role: "user", content: user },
+          ],
+          response_format: { type: "json_object" },
+        }),
+      });
+    } catch (e) {
+      console.error("AI gateway request failed", (e as Error).name);
+      continue;
+    }
     if (res.status === 429) throw new AnalysisError("Analysis is busy right now. Please try again in a minute.");
     if (res.status === 402)
       throw new AnalysisError("Analysis capacity is temporarily exhausted. Please try again later.");

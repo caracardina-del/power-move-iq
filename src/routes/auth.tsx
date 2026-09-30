@@ -4,6 +4,9 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { checkoutUrl } from "@/lib/billing";
+import { useServerFn } from "@tanstack/react-start";
+import { claimGuestAnalysis } from "@/lib/guest.functions";
+import { clearGuest, readGuest } from "@/lib/guest-store";
 
 const RETURN_KEY = "pmiq:return-after-auth";
 const RESUME_KEY = "pmiq:resume-analysis";
@@ -34,7 +37,7 @@ function getReturnIntent() {
 }
 
 function Auth() {
-  const [mode, setMode] = useState<"in" | "up">(() => (getReturnIntent() ? "up" : "in"));
+  const [mode, setMode] = useState<"in" | "up" | "reset">(() => (getReturnIntent() ? "up" : "in"));
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -42,6 +45,7 @@ function Auth() {
   const [busy, setBusy] = useState(false);
   const [finishing, setFinishing] = useState(false);
   const nav = useNavigate();
+  const claim = useServerFn(claimGuestAnalysis);
   const returnIntent = getReturnIntent();
   const pendingAnalysis = returnIntent === "analyze";
   const pendingCheckout = returnIntent?.startsWith("checkout:") ?? false;
@@ -49,6 +53,25 @@ function Auth() {
   async function continueAfterAuth(knownUser?: { id: string; email?: string | null }) {
     const intent = getReturnIntent();
     const user = knownUser ?? (await supabase.auth.getUser()).data.user;
+    const guest = readGuest();
+    let claimedId: string | null = null;
+    if (guest && user) {
+      try {
+        const r = await claim({ data: { token: guest.token } });
+        if (r.ok) {
+          clearGuest();
+          claimedId = r.id;
+        }
+      } catch {
+        /* keep the local copy; the guest page offers a manual save */
+      }
+    }
+    if (intent === "claim" || (claimedId && intent !== "analyze" && !intent?.startsWith("checkout:"))) {
+      window.sessionStorage.removeItem(RETURN_KEY);
+      if (claimedId) await nav({ to: "/analysis/$caseId", params: { caseId: claimedId }, replace: true });
+      else await nav({ to: "/analysis/$caseId", params: { caseId: "guest" }, replace: true });
+      return;
+    }
     if (intent === "analyze") {
       window.sessionStorage.removeItem(RETURN_KEY);
       window.sessionStorage.setItem(RESUME_KEY, "1");
@@ -119,6 +142,14 @@ function Auth() {
     e.preventDefault();
     setBusy(true);
     setMsg("");
+    if (mode === "reset") {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      setMsg(error ? error.message : "If an account exists for that email, a reset link is on its way.");
+      setBusy(false);
+      return;
+    }
     if (mode === "in") {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -198,7 +229,9 @@ function Auth() {
               ? "YOUR SITUATION IS READY"
               : pendingCheckout
                 ? "CONTINUE TO PRO"
-                : mode === "in"
+                : mode === "reset"
+                  ? "RESET PASSWORD"
+                  : mode === "in"
                   ? "WELCOME BACK"
                   : "CREATE YOUR ACCOUNT"}
           </p>
@@ -211,7 +244,9 @@ function Auth() {
                 ? mode === "up"
                   ? "Create your account to continue to secure checkout."
                   : "Sign in to continue to secure checkout."
-                : mode === "in"
+                : mode === "reset"
+                  ? "We’ll email you a reset link."
+                  : mode === "in"
                   ? "Continue thinking clearly."
                   : "Keep what you learn."}
           </h2>
@@ -246,25 +281,48 @@ function Auth() {
               onChange={(e) => setEmail(e.target.value)}
               required
             />
-            <input
-              className="field"
-              type="password"
-              minLength={8}
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
+            {mode !== "reset" && (
+              <input
+                className="field"
+                type="password"
+                minLength={8}
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            )}
             <Button type="submit" disabled={busy}>
-              {busy ? "PLEASE WAIT…" : mode === "in" ? "SIGN IN" : "CREATE MY ACCOUNT"}
+              {busy
+                ? "PLEASE WAIT…"
+                : mode === "in"
+                  ? "SIGN IN"
+                  : mode === "reset"
+                    ? "SEND RESET LINK"
+                    : "CREATE MY ACCOUNT"}
             </Button>
+            {mode === "in" && (
+              <button
+                type="button"
+                className="text-link mt-3 block bg-transparent border-0 cursor-pointer text-xs"
+                onClick={() => {
+                  setMode("reset");
+                  setMsg("");
+                }}
+              >
+                Forgot password?
+              </button>
+            )}
           </form>
           {msg && <div className="auth-msg mt-4">{msg}</div>}
           <p className="mt-6 text-xs text-muted-foreground">
-            {mode === "in" ? "New here? " : "Already have an account? "}
+            {mode === "in" ? "New here? " : mode === "reset" ? "Remembered it? " : "Already have an account? "}
             <button
               className="text-link bg-transparent border-0 cursor-pointer"
-              onClick={() => setMode(mode === "in" ? "up" : "in")}
+              onClick={() => {
+                setMode(mode === "in" ? "up" : "in");
+                setMsg("");
+              }}
             >
               {mode === "in" ? "Create a free account" : "Sign in"}
             </button>
