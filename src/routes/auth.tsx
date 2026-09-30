@@ -229,7 +229,9 @@ function Auth() {
               ? "YOUR SITUATION IS READY"
               : pendingCheckout
                 ? "CONTINUE TO PRO"
-                : mode === "in"
+                : mode === "reset"
+                  ? "RESET PASSWORD"
+                  : mode === "in"
                   ? "WELCOME BACK"
                   : "CREATE YOUR ACCOUNT"}
           </p>
@@ -242,7 +244,9 @@ function Auth() {
                 ? mode === "up"
                   ? "Create your account to continue to secure checkout."
                   : "Sign in to continue to secure checkout."
-                : mode === "in"
+                : mode === "reset"
+                  ? "We’ll email you a reset link."
+                  : mode === "in"
                   ? "Continue thinking clearly."
                   : "Keep what you learn."}
           </h2>
