@@ -22,8 +22,9 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
             </Link>
           ))}
         </nav>
-        <Link to="/analyze" search={{ prompt: "" }} className="header-cta">
-          ANALYZE MY SITUATION
+        <Link to="/analyze" search={{ prompt: "" }} className="header-cta whitespace-nowrap">
+          <span className="hidden sm:inline">ANALYZE MY SITUATION</span>
+          <span className="sm:hidden">ANALYZE</span>
         </Link>
       </header>
       <main>{children}</main>
