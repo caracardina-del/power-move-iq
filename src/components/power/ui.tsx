@@ -82,11 +82,18 @@ export function PricingCard() {
           </Button>
         </div>
       ) : (
-        <Button asChild size="lg" className="w-full">
-          <Link to="/auth" onClick={() => rememberCheckout("monthly")}>
-            START PRO · $14.99 / MONTH
-          </Link>
-        </Button>
+        <div className="grid gap-2">
+          <Button asChild size="lg" className="w-full">
+            <Link to="/auth" onClick={() => rememberCheckout("monthly")}>
+              START PRO · $14.99 / MONTH
+            </Link>
+          </Button>
+          <Button asChild size="lg" variant="outline" className="w-full">
+            <Link to="/auth" onClick={() => rememberCheckout("annual")}>
+              START PRO · $99 / YEAR
+            </Link>
+          </Button>
+        </div>
       )}
       <small>
         Secure checkout by Stripe. Renews automatically each month or year until cancelled. Pro activates once Stripe
