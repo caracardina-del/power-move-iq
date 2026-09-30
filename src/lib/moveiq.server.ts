@@ -2,15 +2,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { analysisSchema, type FullAnalysis } from "./moveiq-schema";
 
-export async function getTier(
-  supabase: SupabaseClient<Database>,
-  userId: string,
-): Promise<"free" | "pro"> {
-  const { data } = await supabase
-    .from("profiles")
-    .select("subscription_tier")
-    .eq("id", userId)
-    .maybeSingle();
+export async function getTier(supabase: SupabaseClient<Database>, userId: string): Promise<"free" | "pro"> {
+  const { data } = await supabase.from("profiles").select("subscription_tier").eq("id", userId).maybeSingle();
   return data?.subscription_tier === "pro" ? "pro" : "free";
 }
 
@@ -18,7 +11,7 @@ const SYSTEM = `You are MOVE IQ, an educational decision-support analyst for pro
 Write original, concise, specific analysis grounded ONLY in what the user wrote. Separate facts from assumptions. Never claim certainty.
 COUNTERPART: classify observable negotiating behaviors only (e.g. anchoring, silence, scope creep, artificial urgency, authority deflection, bundling, deadline pressure). Never diagnose personality or mental state. Cite the evidence from the user's text and state uncertainty.
 SCRIPTS: three versions of the SAME strategy — diplomatic, direct, hard_line — each 2-4 sentences the user can adapt.
-PRECEDENT: include ONLY a specific, named, independently verifiable event (named parties, approximate year) that is widely documented, plus "source": a specific accessible public source (e.g. a named book with author, a named court case, a major publication article title). A general business practice, industry norm, or hypothetical is NOT a precedent — never present one as such. No invented quotes, dates, numbers or attributions. State where the analogy breaks down. If you cannot name both a concrete event and a real source with high confidence, set include=false with a short omitted_reason. Omitting is always preferred to guessing.
+PRECEDENT: source verification is unavailable. Set include=false with a short omitted_reason. Do not invent or cite a historical parallel.
 LEGAL: never assert that anyone has a legal obligation, right, or liability; at most note that contract terms may matter and a qualified professional can advise.
 EXIT LINE: "line" is one calm, professional sentence the user could say if they decide to step back (e.g. pausing or declining additional scope), not dramatic breakup language. Conditions are concrete and observable.
 Do not quote strategy books. Do not give legal, medical, tax or financial determinations; where those matter, suggest consulting a qualified professional.
@@ -59,12 +52,9 @@ export async function generateAnalysis(input: {
         response_format: { type: "json_object" },
       }),
     });
-    if (res.status === 429)
-      throw new AnalysisError("Analysis is busy right now. Please try again in a minute.");
+    if (res.status === 429) throw new AnalysisError("Analysis is busy right now. Please try again in a minute.");
     if (res.status === 402)
-      throw new AnalysisError(
-        "Analysis capacity is temporarily exhausted. Please try again later.",
-      );
+      throw new AnalysisError("Analysis capacity is temporarily exhausted. Please try again later.");
     if (!res.ok) {
       console.error("AI gateway error", res.status, await res.text());
       continue;
@@ -72,10 +62,18 @@ export async function generateAnalysis(input: {
     const body = (await res.json()) as { choices?: { message?: { content?: string } }[] };
     const raw = body.choices?.[0]?.message?.content ?? "";
     try {
-      const parsed = analysisSchema.safeParse(
-        JSON.parse(raw.replace(/^```(json)?|```$/g, "").trim()),
-      );
-      if (parsed.success) return parsed.data;
+      const parsed = analysisSchema.safeParse(JSON.parse(raw.replace(/^```(json)?|```$/g, "").trim()));
+      if (parsed.success) {
+        // Do not publish AI-generated historical citations without source verification.
+        return {
+          ...parsed.data,
+          precedent: {
+            include: false,
+            omitted_reason:
+              parsed.data.precedent.omitted_reason || "No source-verified precedent is available for this situation.",
+          },
+        };
+      }
       console.error("Analysis validation failed", parsed.error.issues.slice(0, 5));
     } catch (e) {
       console.error("Analysis JSON parse failed", e);
