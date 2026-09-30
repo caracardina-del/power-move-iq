@@ -58,8 +58,8 @@ function Analyze() {
   const { prompt } = Route.useSearch();
   const pending = readPending();
   const [text, setText] = useState(prompt || pending?.situation || "");
-  const [type, setType] = useState<(typeof SITUATION_TYPES)[number]>(pending?.type || "Client negotiation");
-  const [urgency, setUrgency] = useState<(typeof URGENCIES)[number]>(pending?.urgency || "Decision this week");
+  const [type, setType] = useState<(typeof SITUATION_TYPES)[number]>(pending?.type || "Other");
+  const [urgency, setUrgency] = useState<(typeof URGENCIES)[number]>(pending?.urgency || "Exploring options");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [ent, setEnt] = useState<Ent | null>(null);
@@ -186,11 +186,7 @@ function Analyze() {
             </select>
           </div>
           <Button size="lg" onClick={submit} disabled={loading || outOfFree || !ready} aria-busy={loading}>
-            {loading
-              ? "MAPPING THE SITUATION…"
-              : error
-                ? "TRY AGAIN"
-                : "ANALYZE MY SITUATION"}{" "}
+            {loading ? "MAPPING THE SITUATION…" : error ? "TRY AGAIN" : "ANALYZE MY SITUATION"}{" "}
             {!loading && <ArrowRight />}
           </Button>
           {!user && ready && (
@@ -224,7 +220,15 @@ function Analyze() {
             <p className="eyebrow">QUICK START</p>
             <div className="flex flex-wrap gap-2">
               {situations.slice(0, 5).map((s) => (
-                <button key={s} className="situation-chip bg-transparent" onClick={() => { setText((t) => (t.trim() ? `${s}. ${t}` : `${s}. `)); setError(""); document.getElementById("situation")?.focus(); }}>
+                <button
+                  key={s}
+                  className="situation-chip bg-transparent"
+                  onClick={() => {
+                    setText((t) => (t.trim() ? `${s}. ${t}` : `${s}. `));
+                    setError("");
+                    document.getElementById("situation")?.focus();
+                  }}
+                >
                   {s}
                 </button>
               ))}
