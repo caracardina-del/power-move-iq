@@ -36,27 +36,18 @@ function Account() {
   useEffect(() => {
     if (!user) return;
     void (async () => {
-      await supabase
-        .from("profiles")
-        .upsert(
-          {
-            id: user.id,
-            email: user.email ?? "",
-            display_name: String(
-              user.user_metadata?.["display_name"] ?? user.user_metadata?.["full_name"] ?? "",
-            ),
-          },
-          { onConflict: "id", ignoreDuplicates: true },
-        );
+      await supabase.from("profiles").upsert(
+        {
+          id: user.id,
+          email: user.email ?? "",
+          display_name: String(user.user_metadata?.["display_name"] ?? user.user_metadata?.["full_name"] ?? ""),
+        },
+        { onConflict: "id", ignoreDuplicates: true },
+      );
       await supabase
         .from("user_roles")
-        .upsert(
-          { user_id: user.id, role: "user" },
-          { onConflict: "user_id,role", ignoreDuplicates: true },
-        );
-      await supabase
-        .from("streaks")
-        .upsert({ user_id: user.id }, { onConflict: "user_id", ignoreDuplicates: true });
+        .upsert({ user_id: user.id, role: "user" }, { onConflict: "user_id,role", ignoreDuplicates: true });
+      await supabase.from("streaks").upsert({ user_id: user.id }, { onConflict: "user_id", ignoreDuplicates: true });
       const r = await summaryFn();
       setS(r);
       setName(r.displayName);
@@ -98,11 +89,7 @@ function Account() {
       <PageHeader
         eyebrow="PROFILE & PREFERENCES"
         title="Account"
-        intro={
-          email
-            ? `Signed in as ${email}`
-            : "Sign in to sync your cases and Outcome Memory across devices."
-        }
+        intro={email ? `Signed in as ${email}` : "Sign in to sync your cases and Outcome Memory across devices."}
       />
       <div className="account-grid">
         <section className="account-panel">
@@ -115,7 +102,9 @@ function Account() {
           </p>
           {!pro && (
             <Button asChild className="mt-5">
-              <Link to="/pricing">VIEW PRO</Link>
+              <Link to="/analyze" search={{ prompt: "" }}>
+                ANALYZE MY SITUATION
+              </Link>
             </Button>
           )}
           {pro && (
@@ -166,12 +155,7 @@ function Account() {
             <label className="block text-xs text-muted-foreground mb-2" htmlFor="focus">
               Primary focus
             </label>
-            <select
-              id="focus"
-              className="field w-full"
-              value={focus}
-              onChange={(e) => setFocus(e.target.value)}
-            >
+            <select id="focus" className="field w-full" value={focus} onChange={(e) => setFocus(e.target.value)}>
               {FOCUS.map((f) => (
                 <option key={f}>{f}</option>
               ))}
