@@ -7,17 +7,12 @@ import { PageHeader } from "@/components/power/shell";
 import { situations } from "@/lib/power-move-data";
 import { useAuthUser } from "@/hooks/use-auth-user";
 import { getEntitlement, runAnalysis } from "@/lib/moveiq.functions";
+import { runGuestAnalysis } from "@/lib/guest.functions";
 import { SITUATION_TYPES, URGENCIES } from "@/lib/moveiq-schema";
+import { clearDraft, readDraft, readGuest, writeDraft, writeGuest } from "@/lib/guest-store";
 
-const PENDING_KEY = "pmiq:pending-analysis";
 const RETURN_KEY = "pmiq:return-after-auth";
 const RESUME_KEY = "pmiq:resume-analysis";
-
-type PendingAnalysis = {
-  situation: string;
-  type: (typeof SITUATION_TYPES)[number];
-  urgency: (typeof URGENCIES)[number];
-};
 
 export const Route = createFileRoute("/analyze")({
   validateSearch: (s: Record<string, unknown>) => ({
@@ -43,39 +38,51 @@ export const Route = createFileRoute("/analyze")({
 });
 
 type Ent = { tier: "free" | "pro"; usedThisMonth: number; freeLimit: number };
-
-function readPending(): PendingAnalysis | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = window.sessionStorage.getItem(PENDING_KEY);
-    return raw ? (JSON.parse(raw) as PendingAnalysis) : null;
-  } catch {
-    return null;
-  }
-}
+type SType = (typeof SITUATION_TYPES)[number];
+type Urg = (typeof URGENCIES)[number];
 
 function Analyze() {
   const { prompt } = Route.useSearch();
-  const pending = readPending();
-  const [text, setText] = useState(prompt || pending?.situation || "");
-  const [type, setType] = useState<(typeof SITUATION_TYPES)[number]>(pending?.type || "Other");
-  const [urgency, setUrgency] = useState<(typeof URGENCIES)[number]>(pending?.urgency || "Exploring options");
+  const [text, setText] = useState("");
+  const [type, setType] = useState<SType>("Other");
+  const [urgency, setUrgency] = useState<Urg>("Exploring options");
+  const [hydrated, setHydrated] = useState(false);
+  const [pendingQuick, setPendingQuick] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [needsAccount, setNeedsAccount] = useState(false);
   const [ent, setEnt] = useState<Ent | null>(null);
-  const [shouldResume] = useState(
-    () => typeof window !== "undefined" && window.sessionStorage.getItem(RESUME_KEY) === "1",
-  );
   const resumed = useRef(false);
+  const inFlight = useRef(false);
   const nav = useNavigate();
   const { user, ready } = useAuthUser();
   const run = useServerFn(runAnalysis);
+  const runGuest = useServerFn(runGuestAnalysis);
   const entFn = useServerFn(getEntitlement);
 
+  // Restore the latest draft once; the newest saved text always wins.
   useEffect(() => {
-    const draft = window.sessionStorage.getItem("pmiq:home-draft");
-    if (draft) setText(draft);
+    const d = readDraft();
+    let t = d?.situation ?? "";
+    if (d) {
+      setText(t);
+      setType(d.type);
+      setUrgency(d.urgency);
+    }
+    if (prompt) {
+      if (!t.trim()) {
+        t = `${prompt}. `;
+        setText(t);
+      } else setPendingQuick(prompt);
+      void nav({ to: "/analyze", search: { prompt: "" }, replace: true });
+    }
+    setHydrated(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (hydrated) writeDraft({ situation: text, type, urgency });
+  }, [hydrated, text, type, urgency]);
 
   useEffect(() => {
     if (user)
@@ -84,64 +91,99 @@ function Analyze() {
         .catch(() => setEnt(null));
   }, [user, entFn]);
 
-  useEffect(() => {
-    if (!shouldResume || !ready || !user || resumed.current) return;
-    const draft = readPending();
-    if (!draft || draft.situation.trim().length < 40) return;
-    resumed.current = true;
-    window.sessionStorage.removeItem(RESUME_KEY);
-    setText(draft.situation);
-    setType(draft.type);
-    setUrgency(draft.urgency);
-    setLoading(true);
-    setError("");
-    void run({ data: draft })
-      .then(async (result) => {
-        if (result.ok) {
-          window.sessionStorage.removeItem(PENDING_KEY);
-          await nav({ to: "/analysis/$caseId", params: { caseId: result.id } });
-        } else {
-          setError(result.error);
-        }
-      })
-      .catch(() => setError("The analysis could not be completed. Check your connection and try again."))
-      .finally(() => setLoading(false));
-  }, [shouldResume, ready, user, run, nav]);
-
-  const tooShort = text.trim().length < 40;
-
-  const inFlight = useRef(false);
-  async function submit() {
-    if (loading || inFlight.current || !ready) return;
-    if (tooShort) {
-      setError("Add who is involved, what happened, and what you want next (at least 40 characters).");
-      return;
-    }
-    window.sessionStorage.removeItem("pmiq:home-draft");
-    setError("");
-    const draft: PendingAnalysis = { situation: text.trim(), type, urgency };
-
-    if (!user) {
-      window.sessionStorage.setItem(PENDING_KEY, JSON.stringify(draft));
-      window.sessionStorage.setItem(RETURN_KEY, "analyze");
-      await nav({ to: "/auth" });
-      return;
-    }
-
+  async function runSigned(draft: { situation: string; type: SType; urgency: Urg }) {
     inFlight.current = true;
     setLoading(true);
+    setError("");
     try {
       const result = await run({ data: draft });
       if (result.ok) {
-        window.sessionStorage.removeItem(PENDING_KEY);
+        clearDraft();
         await nav({ to: "/analysis/$caseId", params: { caseId: result.id } });
       } else setError(result.error);
     } catch {
-      setError("The analysis could not be completed. Check your connection or sign in again, then retry.");
+      setError(
+        "The analysis could not be completed. Check your connection or sign in again, then retry.",
+      );
     } finally {
       inFlight.current = false;
       setLoading(false);
     }
+  }
+
+  // After signing in from this page, continue with the saved draft once.
+  useEffect(() => {
+    if (!hydrated || !ready || !user || resumed.current) return;
+    if (window.sessionStorage.getItem(RESUME_KEY) !== "1") return;
+    resumed.current = true;
+    window.sessionStorage.removeItem(RESUME_KEY);
+    const d = readDraft();
+    if (!d || d.situation.trim().length < 40 || inFlight.current) return;
+    void runSigned({ situation: d.situation.trim(), type: d.type, urgency: d.urgency });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated, ready, user]);
+
+  const tooShort = text.trim().length < 40;
+
+  function goCreateAccount() {
+    window.sessionStorage.setItem(RETURN_KEY, "analyze");
+    void nav({ to: "/auth" });
+  }
+
+  async function submit() {
+    if (loading || inFlight.current || !ready) return;
+    if (tooShort) {
+      setError(
+        "Add who is involved, what happened, and what you want next (at least 40 characters).",
+      );
+      return;
+    }
+    setError("");
+    setNeedsAccount(false);
+    const draft = { situation: text.trim(), type, urgency };
+    writeDraft(draft);
+
+    if (user) return runSigned(draft);
+
+    const prior = readGuest();
+    if (prior) {
+      if (prior.situation === draft.situation) return void nav({ to: "/analysis/$caseId", params: { caseId: "guest" } });
+      setNeedsAccount(true);
+      setError("Your free analysis has been used. Create a free account to analyze another situation.");
+      return;
+    }
+    inFlight.current = true;
+    setLoading(true);
+    try {
+      const r = await runGuest({ data: draft });
+      if (r.ok) {
+        writeGuest({
+          token: r.token,
+          situation: draft.situation,
+          type: draft.type,
+          urgency: draft.urgency,
+          analysis: r.analysis,
+          createdAt: Date.now(),
+        });
+        await nav({ to: "/analysis/$caseId", params: { caseId: "guest" } });
+      } else {
+        setError(r.error);
+        if (r.code !== "error") setNeedsAccount(true);
+      }
+    } catch {
+      setError("The analysis could not be completed. Check your connection and try again.");
+    } finally {
+      inFlight.current = false;
+      setLoading(false);
+    }
+  }
+
+  function quick(s: string) {
+    setError("");
+    if (!text.trim()) {
+      setText(`${s}. `);
+      document.getElementById("situation")?.focus();
+    } else setPendingQuick(s);
   }
 
   const outOfFree = ent?.tier === "free" && ent.usedThisMonth >= ent.freeLimit;
@@ -163,12 +205,41 @@ function Analyze() {
             maxLength={6000}
             placeholder="A client expanded the scope after approving my fee. They’re implying this should be included, and I don’t want to damage the relationship..."
           />
+          {pendingQuick && (
+            <div className="auth-msg mt-3" role="dialog" aria-label="Replace your text?">
+              <p className="text-sm">
+                Replace your current text with “{pendingQuick}”?
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    setText(`${pendingQuick}. `);
+                    setPendingQuick(null);
+                    document.getElementById("situation")?.focus();
+                  }}
+                >
+                  REPLACE
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setPendingQuick(null);
+                    document.getElementById("situation")?.focus();
+                  }}
+                >
+                  KEEP EDITING
+                </Button>
+              </div>
+            </div>
+          )}
           <div className="form-row">
             <select
               className="field"
               aria-label="Situation type"
               value={type}
-              onChange={(e) => setType(e.target.value as typeof type)}
+              onChange={(e) => setType(e.target.value as SType)}
             >
               {SITUATION_TYPES.map((x) => (
                 <option key={x}>{x}</option>
@@ -178,31 +249,38 @@ function Analyze() {
               className="field"
               aria-label="Urgency"
               value={urgency}
-              onChange={(e) => setUrgency(e.target.value as typeof urgency)}
+              onChange={(e) => setUrgency(e.target.value as Urg)}
             >
               {URGENCIES.map((x) => (
                 <option key={x}>{x}</option>
               ))}
             </select>
           </div>
-          <Button size="lg" onClick={submit} disabled={loading || outOfFree || !ready} aria-busy={loading}>
-            {loading ? "MAPPING THE SITUATION…" : error ? "TRY AGAIN" : "ANALYZE MY SITUATION"}{" "}
+          <Button
+            size="lg"
+            onClick={submit}
+            disabled={loading || outOfFree || !ready}
+            aria-busy={loading}
+          >
+            {loading ? "MAPPING THE SITUATION…" : error && !needsAccount ? "RETRY" : "ANALYZE MY SITUATION"}{" "}
             {!loading && <ArrowRight />}
           </Button>
           {!user && ready && (
             <p className="mt-3 text-xs text-muted-foreground">
-              A free account is needed to run and save your analysis. No card required.
+              Your first analysis is free — no account needed. Create a free account afterward to
+              save it.
             </p>
           )}
           {text.trim().length > 0 && tooShort && (
             <p className="mt-3 text-xs text-muted-foreground">
-              Add who is involved, what happened, and what you want next — {text.trim().length}/40 characters.
+              Add who is involved, what happened, and what you want next —{" "}
+              {text.trim().length}/40 characters.
             </p>
           )}
           {ent?.tier === "free" && (
             <p className="mt-3 text-xs text-muted-foreground">
-              Free plan: {Math.min(ent.usedThisMonth, ent.freeLimit)} of {ent.freeLimit} limited analyses used this
-              month.{" "}
+              Free plan: {Math.min(ent.usedThisMonth, ent.freeLimit)} of {ent.freeLimit} limited
+              analyses used this month.{" "}
               <Link to="/pricing" className="text-link">
                 Pro unlocks the full read.
               </Link>
@@ -211,24 +289,31 @@ function Analyze() {
           {error && (
             <div className="auth-msg mt-4" role="alert">
               {error}
+              {needsAccount && (
+                <div className="mt-3">
+                  <Button size="sm" onClick={goCreateAccount}>
+                    CREATE FREE ACCOUNT
+                  </Button>
+                </div>
+              )}
+              {outOfFree && (
+                <div className="mt-3">
+                  <Button size="sm" asChild>
+                    <Link to="/pricing">VIEW PRO</Link>
+                  </Button>
+                </div>
+              )}
             </div>
           )}
           <p className="mt-4 flex items-center gap-2 text-[10px] text-muted-foreground">
-            <ShieldCheck className="size-3" /> Your private cases are only visible to you.
+            <ShieldCheck className="size-3" /> Your situation stays on this device and in your
+            private account — never in links.
           </p>
           <div className="mt-8">
             <p className="eyebrow">QUICK START</p>
             <div className="flex flex-wrap gap-2">
               {situations.slice(0, 5).map((s) => (
-                <button
-                  key={s}
-                  className="situation-chip bg-transparent"
-                  onClick={() => {
-                    setText((t) => (t.trim() ? `${s}. ${t}` : `${s}. `));
-                    setError("");
-                    document.getElementById("situation")?.focus();
-                  }}
-                >
+                <button key={s} className="situation-chip bg-transparent" onClick={() => quick(s)}>
                   {s}
                 </button>
               ))}
@@ -257,6 +342,7 @@ function Analyze() {
             ))}
           </ol>
           <p className="text-xs leading-6 text-muted-foreground">
+            Free reads include The Read, The Move, and Don’t Do This. Pro unlocks every layer.
             Educational decision-support. Not legal, financial, or employment advice.
           </p>
         </aside>
