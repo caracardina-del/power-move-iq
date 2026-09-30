@@ -7,6 +7,9 @@ import { StatePanel, ProLock } from "@/components/power/ui";
 import { resultLayers } from "@/lib/power-move-data";
 import { useAuthUser } from "@/hooks/use-auth-user";
 import { getCase, recordOutcome, runAnalysis } from "@/lib/moveiq.functions";
+import { claimGuestAnalysis } from "@/lib/guest.functions";
+import { clearGuest, readGuest, type GuestResult } from "@/lib/guest-store";
+import { useNavigate } from "@tanstack/react-router";
 import type { FullAnalysis, LimitedAnalysis } from "@/lib/moveiq-schema";
 
 export const Route = createFileRoute("/analysis/$caseId")({
@@ -81,6 +84,7 @@ function Rows({ rows }: { rows: [string, string][] }) {
 function Result() {
   const { caseId } = Route.useParams();
   if (caseId === "sample") return <Sample />;
+  if (caseId === "guest") return <GuestCase />;
   return <RealCase id={caseId} />;
 }
 
@@ -113,6 +117,99 @@ function Sample() {
             </div>
           </section>
         ))}
+    </div>
+  );
+}
+
+function GuestCase() {
+  const { user, ready } = useAuthUser();
+  const nav = useNavigate();
+  const claim = useServerFn(claimGuestAnalysis);
+  const [g, setG] = useState<GuestResult | null | undefined>(undefined);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  useEffect(() => setG(readGuest()), []);
+  async function save() {
+    if (!g || busy) return;
+    setBusy(true);
+    setMsg("");
+    try {
+      const r = await claim({ data: { token: g.token } });
+      if (r.ok) {
+        clearGuest();
+        await nav({ to: "/analysis/$caseId", params: { caseId: r.id }, replace: true });
+      } else setMsg(r.error);
+    } catch {
+      setMsg("Your result could not be saved. Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+  function toAuth() {
+    window.sessionStorage.setItem("pmiq:return-after-auth", "claim");
+    void nav({ to: "/auth" });
+  }
+  if (g === undefined)
+    return (
+      <div className="page-shell">
+        <StatePanel type="loading" title="Opening your free analysis" body="One moment." />
+      </div>
+    );
+  if (!g)
+    return (
+      <div className="page-shell">
+        <StatePanel
+          title="No free analysis on this device"
+          body="It may have been saved to your account already, or it was created on another device."
+        >
+          <div className="flex flex-wrap gap-2">
+            <Button asChild>
+              <Link to="/analyze" search={{ prompt: "" }}>ANALYZE MY SITUATION</Link>
+            </Button>
+            <Button asChild variant="ghost">
+              <Link to="/saved">SAVED CASES</Link>
+            </Button>
+          </div>
+        </StatePanel>
+      </div>
+    );
+  return (
+    <div className="page-shell">
+      <header className="result-header">
+        <p className="eyebrow">MOVE IQ™ · YOUR FREE ANALYSIS</p>
+        <h1>{g.analysis.title}</h1>
+        <div className="result-meta">
+          <span>{g.type}</span>
+          <span>{g.urgency}</span>
+          <span>Not saved yet · on this device only</span>
+        </div>
+        <p className="mt-6 max-w-2xl text-sm leading-7 text-muted-foreground">“{g.situation}”</p>
+        <div className="auth-msg mt-6">
+          {user
+            ? "Save this read to your private account to keep it, follow up, and record the outcome."
+            : "Create a free account to save this read, analyze another situation, or follow up later. Your result carries over."}
+          <div className="mt-4 flex flex-wrap gap-2">
+            {user ? (
+              <Button onClick={save} disabled={busy || !ready}>
+                {busy ? "SAVING…" : "SAVE TO MY ACCOUNT"}
+              </Button>
+            ) : (
+              <>
+                <Button onClick={toAuth} disabled={!ready}>CREATE FREE ACCOUNT TO SAVE</Button>
+                <Button variant="ghost" onClick={toAuth} disabled={!ready}>
+                  I HAVE AN ACCOUNT
+                </Button>
+              </>
+            )}
+          </div>
+          {msg && <p className="mt-3 text-sm" role="alert">{msg}</p>}
+        </div>
+      </header>
+      <Limited a={g.analysis} tier="free" />
+      <p className="mt-10 text-xs leading-6 text-muted-foreground">
+        Educational decision-support generated from your description. Not legal, financial, or
+        employment advice, and no outcome is guaranteed.
+      </p>
     </div>
   );
 }
