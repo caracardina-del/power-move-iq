@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/power/shell";
-import { ProGate, StatePanel } from "@/components/power/ui";
+import { StatePanel } from "@/components/power/ui";
 import { useAuthUser } from "@/hooks/use-auth-user";
 import { listCases } from "@/lib/moveiq.functions";
 import { supabase } from "@/integrations/supabase/client";
@@ -46,48 +46,8 @@ function Saved() {
       </StatePanel>
     );
   else if (err)
-    body = (
-      <StatePanel
-        type="error"
-        title="Cases could not be loaded"
-        body="Please refresh and try again."
-      />
-    );
-  else if (!d)
-    body = (
-      <StatePanel type="loading" title="Loading cases" body="Retrieving your decision history." />
-    );
-  else if (d.tier !== "pro")
-    body = (
-      <>
-        <ProGate
-          title="Saved cases are included with Pro"
-          body={`You have ${d.cases.length} analysis${d.cases.length === 1 ? "" : "es"} on record. Pro keeps a full, searchable decision history.`}
-        />
-        {d.cases.length > 0 && (
-          <div className="case-list mt-8">
-            {d.cases.map((c) => (
-              <Link
-                to="/analysis/$caseId"
-                params={{ caseId: c.id }}
-                className="case-row"
-                key={c.id}
-              >
-                <span className="case-type">
-                  {c.context.type ?? "CASE"} · {new Date(c.created_at).toLocaleDateString()}
-                </span>
-                <div>
-                  <h3>{c.title}</h3>
-                </div>
-                <span className="status">
-                  OPEN <ArrowRight className="inline size-3" />
-                </span>
-              </Link>
-            ))}
-          </div>
-        )}
-      </>
-    );
+    body = <StatePanel type="error" title="Cases could not be loaded" body="Please refresh and try again." />;
+  else if (!d) body = <StatePanel type="loading" title="Loading cases" body="Retrieving your decision history." />;
   else if (!d.cases.length)
     body = (
       <StatePanel title="No cases yet" body="Run your first analysis and it will appear here.">
@@ -138,7 +98,10 @@ function Saved() {
   );
 }
 
-type Fav = { move_id: number; moves: { move_number: number; title: string; category: string; principle: string } | null };
+type Fav = {
+  move_id: number;
+  moves: { move_number: number; title: string; category: string; principle: string } | null;
+};
 function SavedMoves({ userId }: { userId: string }) {
   const [rows, setRows] = useState<Fav[] | null>(null);
   const [err, setErr] = useState(false);
@@ -166,7 +129,10 @@ function SavedMoves({ userId }: { userId: string }) {
       ) : !rows.length ? (
         <p className="text-sm text-muted-foreground">
           No saved moves yet. Use the bookmark on{" "}
-          <Link to="/today" className="text-link">Today</Link> to keep a move here.
+          <Link to="/today" className="text-link">
+            Today
+          </Link>{" "}
+          to keep a move here.
         </p>
       ) : (
         <div className="case-list">
