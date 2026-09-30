@@ -18,6 +18,7 @@ import { Route as LibraryRouteImport } from './routes/library'
 import { Route as OutcomesRouteImport } from './routes/outcomes'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SavedRouteImport } from './routes/saved'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as TodayRouteImport } from './routes/today'
@@ -70,6 +71,11 @@ const PrivacyRoute = PrivacyRouteImport.update({
   path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SavedRoute = SavedRouteImport.update({
   id: '/saved',
   path: '/saved',
@@ -111,6 +117,7 @@ export interface FileRoutesByFullPath {
   '/outcomes': typeof OutcomesRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/saved': typeof SavedRoute
   '/terms': typeof TermsRoute
   '/today': typeof TodayRoute
@@ -128,6 +135,7 @@ export interface FileRoutesByTo {
   '/outcomes': typeof OutcomesRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/saved': typeof SavedRoute
   '/terms': typeof TermsRoute
   '/today': typeof TodayRoute
@@ -146,6 +154,7 @@ export interface FileRoutesById {
   '/outcomes': typeof OutcomesRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/saved': typeof SavedRoute
   '/terms': typeof TermsRoute
   '/today': typeof TodayRoute
@@ -165,6 +174,7 @@ export interface FileRouteTypes {
     | '/outcomes'
     | '/pricing'
     | '/privacy'
+    | '/reset-password'
     | '/saved'
     | '/terms'
     | '/today'
@@ -182,6 +192,7 @@ export interface FileRouteTypes {
     | '/outcomes'
     | '/pricing'
     | '/privacy'
+    | '/reset-password'
     | '/saved'
     | '/terms'
     | '/today'
@@ -199,6 +210,7 @@ export interface FileRouteTypes {
     | '/outcomes'
     | '/pricing'
     | '/privacy'
+    | '/reset-password'
     | '/saved'
     | '/terms'
     | '/today'
@@ -217,6 +229,7 @@ export interface RootRouteChildren {
   OutcomesRoute: typeof OutcomesRoute
   PricingRoute: typeof PricingRoute
   PrivacyRoute: typeof PrivacyRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   SavedRoute: typeof SavedRoute
   TermsRoute: typeof TermsRoute
   TodayRoute: typeof TodayRoute
@@ -290,6 +303,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/saved': {
       id: '/saved'
       path: '/saved'
@@ -345,6 +365,7 @@ const rootRouteChildren: RootRouteChildren = {
   OutcomesRoute: OutcomesRoute,
   PricingRoute: PricingRoute,
   PrivacyRoute: PrivacyRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   SavedRoute: SavedRoute,
   TermsRoute: TermsRoute,
   TodayRoute: TodayRoute,
