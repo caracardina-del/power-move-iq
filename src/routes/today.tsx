@@ -24,18 +24,16 @@ function useStreak() {
       if (data?.last_active_date !== today) {
         cur = data?.last_active_date === y ? cur + 1 : 1;
         long = Math.max(long, cur);
-        await supabase
-          .from("streaks")
-          .upsert(
-            {
-              user_id: user.id,
-              current_streak: cur,
-              longest_streak: long,
-              last_active_date: today,
-              updated_at: new Date().toISOString(),
-            },
-            { onConflict: "user_id" },
-          );
+        await supabase.from("streaks").upsert(
+          {
+            user_id: user.id,
+            current_streak: cur,
+            longest_streak: long,
+            last_active_date: today,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "user_id" },
+        );
       }
       setS({ cur, long });
     })();
@@ -55,10 +53,19 @@ export const Route = createFileRoute("/today")({
   }),
   component: Today,
 });
-type DailyMove = { id: number; move_number: number; title: string; category: string; principle: string; field_note: string };
+type DailyMove = {
+  id: number;
+  move_number: number;
+  title: string;
+  category: string;
+  principle: string;
+  field_note: string;
+};
 function dayOfYear() {
   const d = new Date();
-  return Math.floor((Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) - Date.UTC(d.getFullYear(), 0, 0)) / 86400000);
+  return Math.floor(
+    (Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) - Date.UTC(d.getFullYear(), 0, 0)) / 86400000,
+  );
 }
 function Today() {
   const { user, s } = useStreak();
@@ -68,7 +75,7 @@ function Today() {
   const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState("");
-  const num = ((dayOfYear() - 1) % 90) + 1;
+  const num = ((dayOfYear() - 1) % 10) + 1;
   const day = new Date().toLocaleDateString("en-US", { weekday: "long" }).toUpperCase();
   const loadMove = useCallback(() => {
     setMoveErr(false);
@@ -141,19 +148,23 @@ function Today() {
       />
       <div className="today-grid">
         <article className="daily-move">
-          <div className="daily-number" aria-label={`Move number ${num} of 90`}>
+          <div className="daily-number" aria-label={`Move number ${num} of 10`}>
             {String(num).padStart(2, "0")}
           </div>
           {moveErr ? (
             <>
               <h2>Today’s move could not be loaded.</h2>
-              <Button variant="editorial" onClick={loadMove}>RETRY</Button>
+              <Button variant="editorial" onClick={loadMove}>
+                RETRY
+              </Button>
             </>
           ) : !move ? (
             <p className="eyebrow">LOADING TODAY’S MOVE…</p>
           ) : (
             <>
-              <p className="eyebrow">{move.category.toUpperCase()} · MOVE {num} OF 90</p>
+              <p className="eyebrow">
+                {move.category.toUpperCase()} · MOVE {num} OF 10
+              </p>
               <h2>{move.title.replace(/\s*·\s*\d+$/, "")}</h2>
               <p>{move.principle}</p>
               <div className="move-actions">
@@ -178,7 +189,9 @@ function Today() {
                   </Button>
                 </div>
               </div>
-              <p className="mt-3 min-h-5 text-xs" aria-live="polite">{note}</p>
+              <p className="mt-3 min-h-5 text-xs" aria-live="polite">
+                {note}
+              </p>
             </>
           )}
         </article>
@@ -189,15 +202,17 @@ function Today() {
               <span className="streak-value">{s?.cur ?? 0}</span> <small>DAYS</small>
             </div>
             <div className="week-dots" aria-hidden="true">
-              {Array.from({ length: 7 }, (_, i) => (i < Math.min(s?.cur ?? 0, 7) ? 1 : 0)).map(
-                (x, i) => (
-                  <i key={i} className={x ? "on" : ""} />
-                ),
-              )}
+              {Array.from({ length: 7 }, (_, i) => (i < Math.min(s?.cur ?? 0, 7) ? 1 : 0)).map((x, i) => (
+                <i key={i} className={x ? "on" : ""} />
+              ))}
             </div>
             <small>
-              {user ? `Longest streak · ${s?.long ?? 0} days · counts days you open Today` : (
-                <Link to="/auth" className="text-link">Sign in to track your streak</Link>
+              {user ? (
+                `Longest streak · ${s?.long ?? 0} days · counts days you open Today`
+              ) : (
+                <Link to="/auth" className="text-link">
+                  Sign in to track your streak
+                </Link>
               )}
             </small>
           </div>
