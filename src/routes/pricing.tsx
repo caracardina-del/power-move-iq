@@ -24,7 +24,7 @@ function Pricing() {
       <PageHeader
         eyebrow="MEMBERSHIP"
         title="Better moves. Better memory."
-        intro="Use the daily practice free. Go Pro when you need the complete read, exact language, follow-up analysis, and a record of what works."
+        intro="Use the daily practice free. Upgrade to Pro when you need the complete read, exact language, follow-up analysis, and a record of what works."
       />
       <div className="pricing-grid">
         <div className="free-card">

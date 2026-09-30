@@ -245,7 +245,7 @@ export const getAccountSummary = createServerFn({ method: "GET" })
       supabase.from("outcomes").select("id", { count: "exact", head: true }),
     ]);
     return {
-      tier: profile.data?.subscription_tier === "pro" ? ("pro" as const) : ("free" as const),
+      tier: await getTier(supabase, userId),
       displayName: profile.data?.display_name ?? "",
       preferences: (profile.data?.preferences ?? {}) as { focus?: string },
       streak: streak.data?.current_streak ?? 0,

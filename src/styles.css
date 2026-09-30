@@ -1209,7 +1209,7 @@ h3,
     color: var(--gold);
   }
   main {
-    padding-bottom: calc(72px + env(safe-area-inset-bottom));
+    padding-bottom: calc(104px + env(safe-area-inset-bottom));
   }
   .site-footer {
     padding-bottom: calc(110px + env(safe-area-inset-bottom));
