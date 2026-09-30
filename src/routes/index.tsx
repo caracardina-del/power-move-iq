@@ -10,10 +10,7 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Power Move IQ — Know Your Next Move" },
-      {
-        name: "description",
-        content: "Decision intelligence for difficult professional and money situations.",
-      },
+      { name: "description", content: "Decision intelligence for difficult professional and money situations." },
       { property: "og:title", content: "Power Move IQ — Know Your Next Move" },
       {
         property: "og:description",
@@ -25,21 +22,21 @@ export const Route = createFileRoute("/")({
   }),
   component: Home,
 });
-
 function Home() {
   const [prompt, setPrompt] = useState("");
   const nav = useNavigate();
-  const ready = prompt.trim().length > 0;
-
   async function begin(e: React.FormEvent) {
     e.preventDefault();
-    if (ready) {
+    if (prompt.trim()) {
       const prev = readDraft();
-      writeDraft({ situation: prompt.trim(), type: prev?.type ?? "Other", urgency: prev?.urgency ?? "Exploring options" });
+      writeDraft({
+        situation: prompt.trim(),
+        type: prev?.type ?? "Other",
+        urgency: prev?.urgency ?? "Exploring options",
+      });
     }
     await nav({ to: "/analyze", search: { prompt: "" } });
   }
-
   return (
     <>
       <section className="hero">
@@ -88,8 +85,8 @@ function Home() {
               ANALYZE MY SITUATION <ArrowRight />
             </Button>
             <p className="flex items-center gap-2 text-xs text-muted-foreground">
-              <ShieldCheck className="size-3" /> No card required. A free account is needed to run and save your
-              analysis.
+              <ShieldCheck className="size-3" /> Your first analysis is available without an account or card. Sign in
+              afterward to save and continue.
             </p>
           </form>
         </div>
