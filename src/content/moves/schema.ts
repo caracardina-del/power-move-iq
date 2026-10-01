@@ -33,8 +33,8 @@ export const moveSchema = z.object({
   scripts: z.object({
     default: text(40),
     diplomatic: text(40),
-    direct: text(30),
-    firm: text(30),
+    direct: text(15),
+    firm: text(20),
     written: text(60),
     message: text(20).optional(),
   }),
