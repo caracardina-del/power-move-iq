@@ -14,7 +14,6 @@ import { Route as AboutRouteImport } from './routes/about'
 import { Route as AccountRouteImport } from './routes/account'
 import { Route as AnalyzeRouteImport } from './routes/analyze'
 import { Route as AuthRouteImport } from './routes/auth'
-import { Route as LibraryRouteImport } from './routes/library'
 import { Route as OutcomesRouteImport } from './routes/outcomes'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as PrivacyRouteImport } from './routes/privacy'
@@ -24,6 +23,7 @@ import { Route as TermsRouteImport } from './routes/terms'
 import { Route as TodayRouteImport } from './routes/today'
 import { Route as WeeklyRouteImport } from './routes/weekly'
 import { Route as AnalysisCaseIdRouteImport } from './routes/analysis.$caseId'
+import { Route as LibraryIndexRouteImport } from './routes/library.index'
 import { Route as ApiPublicStripeWebhookRouteImport } from './routes/api/public/stripe-webhook'
 
 const IndexRoute = IndexRouteImport.update({
@@ -49,11 +49,6 @@ const AnalyzeRoute = AnalyzeRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LibraryRoute = LibraryRouteImport.update({
-  id: '/library',
-  path: '/library',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OutcomesRoute = OutcomesRouteImport.update({
@@ -101,6 +96,11 @@ const AnalysisCaseIdRoute = AnalysisCaseIdRouteImport.update({
   path: '/analysis/$caseId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LibraryIndexRoute = LibraryIndexRouteImport.update({
+  id: '/library/',
+  path: '/library/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicStripeWebhookRoute = ApiPublicStripeWebhookRouteImport.update({
   id: '/api/public/stripe-webhook',
   path: '/api/public/stripe-webhook',
@@ -113,7 +113,6 @@ export interface FileRoutesByFullPath {
   '/account': typeof AccountRoute
   '/analyze': typeof AnalyzeRoute
   '/auth': typeof AuthRoute
-  '/library': typeof LibraryRoute
   '/outcomes': typeof OutcomesRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
@@ -123,6 +122,7 @@ export interface FileRoutesByFullPath {
   '/today': typeof TodayRoute
   '/weekly': typeof WeeklyRoute
   '/analysis/$caseId': typeof AnalysisCaseIdRoute
+  '/library/': typeof LibraryIndexRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
 }
 export interface FileRoutesByTo {
@@ -131,7 +131,6 @@ export interface FileRoutesByTo {
   '/account': typeof AccountRoute
   '/analyze': typeof AnalyzeRoute
   '/auth': typeof AuthRoute
-  '/library': typeof LibraryRoute
   '/outcomes': typeof OutcomesRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
@@ -141,6 +140,7 @@ export interface FileRoutesByTo {
   '/today': typeof TodayRoute
   '/weekly': typeof WeeklyRoute
   '/analysis/$caseId': typeof AnalysisCaseIdRoute
+  '/library': typeof LibraryIndexRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
 }
 export interface FileRoutesById {
@@ -150,7 +150,6 @@ export interface FileRoutesById {
   '/account': typeof AccountRoute
   '/analyze': typeof AnalyzeRoute
   '/auth': typeof AuthRoute
-  '/library': typeof LibraryRoute
   '/outcomes': typeof OutcomesRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
@@ -160,6 +159,7 @@ export interface FileRoutesById {
   '/today': typeof TodayRoute
   '/weekly': typeof WeeklyRoute
   '/analysis/$caseId': typeof AnalysisCaseIdRoute
+  '/library/': typeof LibraryIndexRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
 }
 export interface FileRouteTypes {
@@ -170,7 +170,6 @@ export interface FileRouteTypes {
     | '/account'
     | '/analyze'
     | '/auth'
-    | '/library'
     | '/outcomes'
     | '/pricing'
     | '/privacy'
@@ -180,6 +179,7 @@ export interface FileRouteTypes {
     | '/today'
     | '/weekly'
     | '/analysis/$caseId'
+    | '/library/'
     | '/api/public/stripe-webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -188,7 +188,6 @@ export interface FileRouteTypes {
     | '/account'
     | '/analyze'
     | '/auth'
-    | '/library'
     | '/outcomes'
     | '/pricing'
     | '/privacy'
@@ -198,6 +197,7 @@ export interface FileRouteTypes {
     | '/today'
     | '/weekly'
     | '/analysis/$caseId'
+    | '/library'
     | '/api/public/stripe-webhook'
   id:
     | '__root__'
@@ -206,7 +206,6 @@ export interface FileRouteTypes {
     | '/account'
     | '/analyze'
     | '/auth'
-    | '/library'
     | '/outcomes'
     | '/pricing'
     | '/privacy'
@@ -216,6 +215,7 @@ export interface FileRouteTypes {
     | '/today'
     | '/weekly'
     | '/analysis/$caseId'
+    | '/library/'
     | '/api/public/stripe-webhook'
   fileRoutesById: FileRoutesById
 }
@@ -225,7 +225,6 @@ export interface RootRouteChildren {
   AccountRoute: typeof AccountRoute
   AnalyzeRoute: typeof AnalyzeRoute
   AuthRoute: typeof AuthRoute
-  LibraryRoute: typeof LibraryRoute
   OutcomesRoute: typeof OutcomesRoute
   PricingRoute: typeof PricingRoute
   PrivacyRoute: typeof PrivacyRoute
@@ -235,6 +234,7 @@ export interface RootRouteChildren {
   TodayRoute: typeof TodayRoute
   WeeklyRoute: typeof WeeklyRoute
   AnalysisCaseIdRoute: typeof AnalysisCaseIdRoute
+  LibraryIndexRoute: typeof LibraryIndexRoute
   ApiPublicStripeWebhookRoute: typeof ApiPublicStripeWebhookRoute
 }
 
@@ -273,13 +273,6 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/library': {
-      id: '/library'
-      path: '/library'
-      fullPath: '/library'
-      preLoaderRoute: typeof LibraryRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/outcomes': {
@@ -345,6 +338,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AnalysisCaseIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/library/': {
+      id: '/library/'
+      path: '/library'
+      fullPath: '/library/'
+      preLoaderRoute: typeof LibraryIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/stripe-webhook': {
       id: '/api/public/stripe-webhook'
       path: '/api/public/stripe-webhook'
@@ -361,7 +361,6 @@ const rootRouteChildren: RootRouteChildren = {
   AccountRoute: AccountRoute,
   AnalyzeRoute: AnalyzeRoute,
   AuthRoute: AuthRoute,
-  LibraryRoute: LibraryRoute,
   OutcomesRoute: OutcomesRoute,
   PricingRoute: PricingRoute,
   PrivacyRoute: PrivacyRoute,
@@ -371,6 +370,7 @@ const rootRouteChildren: RootRouteChildren = {
   TodayRoute: TodayRoute,
   WeeklyRoute: WeeklyRoute,
   AnalysisCaseIdRoute: AnalysisCaseIdRoute,
+  LibraryIndexRoute: LibraryIndexRoute,
   ApiPublicStripeWebhookRoute: ApiPublicStripeWebhookRoute,
 }
 export const routeTree = rootRouteImport

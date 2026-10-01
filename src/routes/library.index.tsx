@@ -69,7 +69,7 @@ const moves = [
   },
 ];
 
-export const Route = createFileRoute("/library")({
+export const Route = createFileRoute("/library/")({
   head: () => ({
     meta: [
       { title: "The Move Index — Power Move IQ" },
