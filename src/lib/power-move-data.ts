@@ -114,25 +114,3 @@ export const categories = [
   "Decision",
 ];
 
-export function makeMoves() {
-  const titles = [
-    "Name the decision",
-    "Price the change",
-    "Hold the silence",
-    "Separate urgency from value",
-    "Trade, never concede",
-    "Ask for the constraint",
-    "Set the next checkpoint",
-    "Make the alternative real",
-    "Define the walk-away",
-    "Document the agreement",
-  ];
-  const cats = categories.slice(1);
-  return Array.from({ length: 90 }, (_, i) => ({
-    number: i + 1,
-    title: `${titles[i % titles.length]}`,
-    category: cats[i % cats.length],
-    pro: i > 6,
-    principle: "A strong position begins with a clear decision, not a perfect sentence.",
-  }));
-}
