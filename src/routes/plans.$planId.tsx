@@ -79,6 +79,7 @@ function PlanPage() {
   if (!d.found || !c) return <div className="page-shell"><StatePanel title="Plan not found" body="It may belong to another account."><Button asChild><Link to="/saved">BACK TO SAVED</Link></Button></StatePanel></div>;
 
   const { plan, versions, alternatives, scripts, tier } = d;
+  const cur: PlanContent = c;
   const editable = plan.status === "active" && tier === "pro";
   const set = (patch: Partial<PlanContent>) => { setC({ ...c, ...patch }); setDirty(true); };
 
@@ -101,6 +102,7 @@ function PlanPage() {
     if (!r.ok) setMsg(r.error); else load();
   }
   function exportPlan() {
+    const c = cur;
     const text = [`MOVE PLAN — ${plan.title}`, `Version ${plan.current_version}`, "", "THE MOVE", c.move, "", "OPENING LINE", c.opening, "", `SCRIPT (${c.mode})`, c.script, "", "STEPS", ...c.steps.map((s, i) => `${i + 1}. ${s}`), "", "NOTES", c.notes, "", "Educational decision support — not legal, financial or employment advice."].join("\n");
     const url = URL.createObjectURL(new Blob([text], { type: "text/plain" }));
     const a = document.createElement("a");

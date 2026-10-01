@@ -296,7 +296,7 @@ function RealCase({ id }: { id: string }) {
           <span>{date}</span>
         </div>
         <p className="mt-6 max-w-2xl text-sm leading-7 text-muted-foreground">“{row.situation}”</p>
-        <CaseTools caseId={row.id} isPro={tier === "pro" && res.tier === "pro"} status={row.status} classification={row.classification} fallbackType={row.context.type} primaryRef={res.analysis.move_refs?.primary ?? null} onChange={onChange} />
+        <CaseTools caseId={row.id} isPro={tier === "pro" && res.tier === "pro"} status={row.status} classification={row.classification} fallbackType={row.context.type} primaryRef={res.analysis.move_refs?.primary ?? null} onChange={load} />
         {row.context.parent_id && (
           <p className="mt-3 text-xs">
             Follow-up to{" "}
@@ -630,7 +630,7 @@ function OutcomeForm({
 
 function CaseTools({ caseId, isPro, status, classification, fallbackType, primaryRef, onChange }: {
   caseId: string; isPro: boolean; status: string; classification: { situation?: string; goal?: string; corrected_at?: string };
-  fallbackType?: string; primaryRef: string | null; onChange: () => void;
+  fallbackType?: string | undefined; primaryRef: string | null; onChange: () => void;
 }) {
   const navigate = useNavigate();
   const mkPlan = useServerFn(createPlanFromCase);
