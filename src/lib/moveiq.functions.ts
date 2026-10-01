@@ -7,8 +7,10 @@ import {
   limit,
   SITUATION_TYPES,
   URGENCIES,
+  GOAL_IDS_INTAKE,
   type StoredResult,
 } from "./moveiq-schema";
+import { candidatesFor } from "./moves.server";
 import { AnalysisError, generateAnalysis, getTier } from "./moveiq.server";
 
 function monthStart() {
@@ -39,6 +41,7 @@ export const runAnalysis = createServerFn({ method: "POST" })
           .max(6000),
         type: z.enum(SITUATION_TYPES),
         urgency: z.enum(URGENCIES),
+        goal: z.enum(GOAL_IDS_INTAKE).optional(),
         parentId: z.string().uuid().optional(),
         update: z.string().trim().max(3000).optional(),
       })
@@ -76,7 +79,8 @@ export const runAnalysis = createServerFn({ method: "POST" })
       prior = `Original situation: ${parent.situation}\nPrior recommendation: ${JSON.stringify((parent.result as { analysis?: { move?: unknown } })?.analysis?.move ?? {})}\nWhat happened since: ${data.update ?? ""}`;
     }
     try {
-      const full = await generateAnalysis({ ...data, prior });
+      const candidates = candidatesFor(data.type, data.goal).map((m) => ({ id: m.id, title: m.title, principle: m.principle }));
+      const { grounding, ...full } = await generateAnalysis({ ...data, prior, candidates });
       const stored: StoredResult =
         tier === "pro" ? { tier: "pro", analysis: full } : { tier: "free", analysis: limit(full) };
       const { data: row, error } = await supabase
@@ -88,7 +92,9 @@ export const runAnalysis = createServerFn({ method: "POST" })
           context: {
             type: data.type,
             urgency: data.urgency,
+            goal: data.goal ?? null,
             parent_id: data.parentId ?? null,
+            grounding,
           } as Json,
           result: stored as unknown as Json,
           is_saved: tier === "pro",
@@ -121,13 +127,13 @@ export const getCase = createServerFn({ method: "GET" })
     const tier = await getTier(context.supabase, context.userId);
     const { data: row } = await context.supabase
       .from("analyses")
-      .select("id, title, situation, context, result, chosen_move, created_at")
+      .select("id, title, situation, context, result, chosen_move, created_at, status, classification")
       .eq("id", data.id)
       .maybeSingle();
     if (!row) return { tier, found: false as const };
     const { data: outcomes } = await context.supabase
       .from("outcomes")
-      .select("id, outcome, chosen_move, result_note, recorded_at")
+      .select("id, outcome, chosen_move, chosen_move_ref, move_plan_id, result_note, lesson, recorded_at")
       .eq("analysis_id", data.id)
       .order("recorded_at", { ascending: false });
     return {
@@ -135,7 +141,8 @@ export const getCase = createServerFn({ method: "GET" })
       found: true as const,
       row: {
         ...row,
-        context: row.context as { type?: string; urgency?: string; parent_id?: string | null },
+        context: row.context as { type?: string; urgency?: string; goal?: string | null; parent_id?: string | null; grounding?: { status: string } },
+        classification: row.classification as { situation?: string; goal?: string; corrected_at?: string },
         result: row.result as unknown as StoredResult,
       },
       outcomes: outcomes ?? [],
@@ -181,7 +188,7 @@ export const listCases = createServerFn({ method: "GET" })
     const tier = await getTier(context.supabase, context.userId);
     const { data } = await context.supabase
       .from("analyses")
-      .select("id, title, situation, context, created_at, outcomes(outcome)")
+      .select("id, title, situation, context, created_at, status, outcomes(outcome), move_plans(id)")
       .order("created_at", { ascending: false })
       .limit(100);
     return {
@@ -291,4 +298,32 @@ export const getWeeklyLens = createServerFn({ method: "GET" })
             exercise: "",
           },
         };
+  });
+
+/** User correction of the inferred classification. Original input and AI inference stay untouched. */
+export const correctClassification = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z.object({ id: z.string().uuid(), situation: z.enum(SITUATION_TYPES), goal: z.enum(GOAL_IDS_INTAKE).nullable() }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { error, count } = await context.supabase
+      .from("analyses")
+      .update({ classification: { situation: data.situation, goal: data.goal, corrected_at: new Date().toISOString() } as Json }, { count: "exact" })
+      .eq("id", data.id);
+    if (error || !count) return { ok: false as const, error: "The correction could not be saved." };
+    return { ok: true as const };
+  });
+
+/** Archive or restore a case. Nothing is deleted. */
+export const setCaseArchived = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: z.string().uuid(), archived: z.boolean() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { error, count } = await context.supabase
+      .from("analyses")
+      .update({ status: data.archived ? "archived" : "complete" }, { count: "exact" })
+      .eq("id", data.id);
+    if (error || !count) return { ok: false as const, error: "Could not update this case." };
+    return { ok: true as const };
   });
