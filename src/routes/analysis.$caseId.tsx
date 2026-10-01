@@ -10,7 +10,9 @@ import { getCase, recordOutcome, runAnalysis } from "@/lib/moveiq.functions";
 import { claimGuestAnalysis } from "@/lib/guest.functions";
 import { clearGuest, readGuest, type GuestResult } from "@/lib/guest-store";
 import { useNavigate } from "@tanstack/react-router";
-import type { FullAnalysis, LimitedAnalysis } from "@/lib/moveiq-schema";
+import { GOAL_OPTIONS, SITUATION_TYPES, type FullAnalysis, type LimitedAnalysis } from "@/lib/moveiq-schema";
+import { correctClassification, setCaseArchived } from "@/lib/moveiq.functions";
+import { createPlanFromCase } from "@/lib/plans.functions";
 
 export const Route = createFileRoute("/analysis/$caseId")({
   head: () => ({
@@ -294,6 +296,7 @@ function RealCase({ id }: { id: string }) {
           <span>{date}</span>
         </div>
         <p className="mt-6 max-w-2xl text-sm leading-7 text-muted-foreground">“{row.situation}”</p>
+        <CaseTools caseId={row.id} isPro={tier === "pro" && res.tier === "pro"} status={row.status} classification={row.classification} fallbackType={row.context.type} primaryRef={res.analysis.move_refs?.primary ?? null} onChange={onChange} />
         {row.context.parent_id && (
           <p className="mt-3 text-xs">
             Follow-up to{" "}
@@ -621,6 +624,49 @@ function OutcomeForm({
       <Button className="mt-3" variant="editorial" disabled={busy} onClick={runFollow}>
         {busy ? "WORKING…" : "ANALYZE THE NEXT MOVE"}
       </Button>
+    </div>
+  );
+}
+
+function CaseTools({ caseId, isPro, status, classification, fallbackType, primaryRef, onChange }: {
+  caseId: string; isPro: boolean; status: string; classification: { situation?: string; goal?: string; corrected_at?: string };
+  fallbackType?: string; primaryRef: string | null; onChange: () => void;
+}) {
+  const navigate = useNavigate();
+  const mkPlan = useServerFn(createPlanFromCase);
+  const correct = useServerFn(correctClassification);
+  const archive = useServerFn(setCaseArchived);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [editing, setEditing] = useState(false);
+  const [sit, setSit] = useState(classification.situation ?? fallbackType ?? "Other");
+  const [goal, setGoal] = useState<string>(classification.goal ?? "");
+  const run = async (fn: () => Promise<{ ok: boolean; error?: string }>, done?: string) => {
+    if (busy) return; setBusy(true); setMsg("");
+    try { const r = await fn(); if (!r.ok) setMsg(r.error ?? "Something went wrong."); else { if (done) setMsg(done); onChange(); } }
+    catch { setMsg("Network problem — please try again."); } finally { setBusy(false); }
+  };
+  return (
+    <div className="mt-6 flex flex-wrap items-center gap-3 text-sm">
+      {isPro && status !== "archived" && (
+        <Button size="sm" disabled={busy} onClick={async () => {
+          if (busy) return; setBusy(true); setMsg("");
+          try { const r = await mkPlan({ data: { analysisId: caseId } }); if (r.ok) navigate({ to: "/plans/$planId", params: { planId: r.id } }); else setMsg(r.error); }
+          catch { setMsg("The plan could not be created. Try again."); } finally { setBusy(false); }
+        }}>{busy ? "OPENING…" : "EDIT AS MOVE PLAN"}</Button>
+      )}
+      {primaryRef && <span className="text-xs">Grounded in catalog Move {primaryRef.replace("mv_", "#")}</span>}
+      <Button size="sm" variant="ghost" onClick={() => setEditing((v) => !v)}>{classification.corrected_at ? "SITUATION: CORRECTED" : "CORRECT THE SITUATION TYPE"}</Button>
+      <Button size="sm" variant="ghost" disabled={busy} onClick={() => run(() => archive({ data: { id: caseId, archived: status !== "archived" } }), status === "archived" ? "Case restored." : "Case archived. Nothing was deleted.")}>
+        {status === "archived" ? "RESTORE CASE" : "ARCHIVE CASE"}</Button>
+      {editing && (
+        <div className="grid w-full gap-2 rounded border border-border p-3 sm:grid-cols-[1fr_1fr_auto]">
+          <label className="grid gap-1 text-xs">Situation<select className="field" value={sit} onChange={(e) => setSit(e.target.value)}>{SITUATION_TYPES.map((t) => <option key={t}>{t}</option>)}</select></label>
+          <label className="grid gap-1 text-xs">Goal<select className="field" value={goal} onChange={(e) => setGoal(e.target.value)}><option value="">Not specified</option>{GOAL_OPTIONS.map(([id, l]) => <option key={id} value={id}>{l}</option>)}</select></label>
+          <Button size="sm" className="self-end" disabled={busy} onClick={() => run(() => correct({ data: { id: caseId, situation: sit as (typeof SITUATION_TYPES)[number], goal: goal || null } }), "Correction saved. Your original text is unchanged.").then(() => setEditing(false))}>SAVE</Button>
+        </div>
+      )}
+      {msg && <p role="status" className="w-full text-xs">{msg}</p>}
     </div>
   );
 }
