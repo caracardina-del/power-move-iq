@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createHmac, timingSafeEqual } from "crypto";
 import { z } from "zod";
+import { anyGrantsPro } from "@/lib/billing-policy";
 
 // Verified Stripe events are the ONLY path that grants or removes Pro.
 function verify(body: string, header: string | null, secret: string) {
@@ -17,8 +18,6 @@ function verify(body: string, header: string | null, secret: string) {
   });
 }
 
-// past_due keeps access during Stripe's retry window; canceled/unpaid/incomplete remove it.
-const ENTITLED = new Set(["active", "trialing", "past_due"]);
 
 const eventSchema = z.object({
   id: z.string().min(1),
@@ -82,10 +81,11 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
         const recomputeTier = async (userId: string) => {
           const { data, error } = await supabaseAdmin
             .from("stripe_subscriptions")
-            .select("status")
+            .select("status, current_period_end")
             .eq("user_id", userId);
           if (error) return error;
-          const pro = (data ?? []).some((r) => ENTITLED.has(r.status));
+          // Bounded policy: see src/lib/billing-policy.ts (past_due only within the grace window).
+          const pro = anyGrantsPro(data ?? []);
           const { error: tErr } = await supabaseAdmin
             .from("profiles")
             .update({ subscription_tier: pro ? "pro" : "free", updated_at: new Date().toISOString() })

@@ -1,9 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Bookmark, Share2, ArrowRight } from "lucide-react";
+import { Share2, ArrowRight } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { getDailyMove } from "@/lib/moves.functions";
+import { categoryLabel } from "@/content/moves/taxonomy";
+import { SaveMoveButton } from "@/components/power/save-move";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/power/shell";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthUser } from "@/hooks/use-auth-user";
 function useStreak() {
@@ -53,76 +56,27 @@ export const Route = createFileRoute("/today")({
   }),
   component: Today,
 });
-type DailyMove = {
-  id: number;
-  move_number: number;
-  title: string;
-  category: string;
-  principle: string;
-  field_note: string;
-};
-function dayOfYear() {
-  const d = new Date();
-  return Math.floor(
-    (Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) - Date.UTC(d.getFullYear(), 0, 0)) / 86400000,
-  );
-}
 function Today() {
   const { user, s } = useStreak();
-  const nav = useNavigate();
-  const [move, setMove] = useState<DailyMove | null>(null);
+  const fetchDaily = useServerFn(getDailyMove);
+  const [move, setMove] = useState<Awaited<ReturnType<typeof getDailyMove>> | undefined>(undefined);
   const [moveErr, setMoveErr] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [busy, setBusy] = useState(false);
   const [note, setNote] = useState("");
-  const num = ((dayOfYear() - 1) % 10) + 1;
   const day = new Date().toLocaleDateString("en-US", { weekday: "long" }).toUpperCase();
   const loadMove = useCallback(() => {
     setMoveErr(false);
-    void supabase
-      .from("moves")
-      .select("id, move_number, title, category, principle, field_note")
-      .eq("move_number", num)
-      .maybeSingle()
-      .then(({ data, error }) => (error || !data ? setMoveErr(true) : setMove(data)));
-  }, [num]);
+    setMove(undefined);
+    fetchDaily().then(setMove).catch(() => setMoveErr(true));
+  }, [fetchDaily]);
   useEffect(loadMove, [loadMove]);
-  useEffect(() => {
-    if (!user || !move) return setSaved(false);
-    void supabase
-      .from("favorite_moves")
-      .select("move_id")
-      .eq("user_id", user.id)
-      .eq("move_id", move.id)
-      .maybeSingle()
-      .then(({ data }) => setSaved(!!data));
-  }, [user, move]);
   const timer = useRef<number | undefined>(undefined);
   function flash(t: string) {
     setNote(t);
     window.clearTimeout(timer.current);
     timer.current = window.setTimeout(() => setNote(""), 2500);
   }
-  async function toggleSave() {
-    if (!move || busy) return;
-    if (!user) {
-      await nav({ to: "/auth" });
-      return;
-    }
-    const next = !saved;
-    setSaved(next);
-    setBusy(true);
-    const { error } = next
-      ? await supabase.from("favorite_moves").insert({ user_id: user.id, move_id: move.id })
-      : await supabase.from("favorite_moves").delete().eq("user_id", user.id).eq("move_id", move.id);
-    setBusy(false);
-    if (error && !(next && error.code === "23505")) {
-      setSaved(!next);
-      flash("Could not update. Please try again.");
-    } else flash(next ? "Saved to your moves." : "Removed from saved moves.");
-  }
   async function share() {
-    const url = `${window.location.origin}/today`;
+    const url = move ? `${window.location.origin}/library/${move.slug}` : `${window.location.origin}/today`;
     const title = move ? `${move.title} — Power Move IQ` : "Power Move IQ — Today";
     if (navigator.share) {
       try {
@@ -148,50 +102,44 @@ function Today() {
       />
       <div className="today-grid">
         <article className="daily-move">
-          <div className="daily-number" aria-label={`Move number ${num} of 10`}>
-            {String(num).padStart(2, "0")}
-          </div>
           {moveErr ? (
             <>
-              <h2>Today’s move could not be loaded.</h2>
-              <Button variant="editorial" onClick={loadMove}>
-                RETRY
-              </Button>
+              <h2>Today’s Move could not be loaded.</h2>
+              <Button variant="editorial" onClick={loadMove}>RETRY</Button>
             </>
-          ) : !move ? (
-            <p className="eyebrow">LOADING TODAY’S MOVE…</p>
+          ) : move === undefined ? (
+            <p className="eyebrow" role="status">LOADING TODAY’S MOVE…</p>
+          ) : move === null ? (
+            <>
+              <h2>No Move is published yet.</h2>
+              <p>Daily Moves appear once Library Moves pass editorial review.</p>
+            </>
           ) : (
             <>
+              <div className="daily-number" aria-hidden="true">{String(move.number).padStart(2, "0")}</div>
               <p className="eyebrow">
-                {move.category.toUpperCase()} · MOVE {num} OF 10
+                MOVE {move.number} OF {move.total} · {categoryLabel(move.category).toUpperCase()}
+                {move.reviewDraft ? " · REVIEW DRAFT" : ""}
               </p>
-              <h2>{move.title.replace(/\s*·\s*\d+$/, "")}</h2>
+              <h2>{move.title}</h2>
               <p>{move.principle}</p>
               <div className="move-actions">
                 <small>
-                  FIELD NOTE
+                  IN SHORT
                   <br />
-                  {move.field_note}
+                  {move.summary}
                 </small>
                 <div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    aria-label={saved ? "Remove from saved moves" : user ? "Save move" : "Sign in to save move"}
-                    aria-pressed={saved}
-                    onClick={toggleSave}
-                    disabled={busy}
-                  >
-                    <Bookmark className={saved ? "fill-current" : ""} />
-                  </Button>
-                  <Button variant="ghost" size="icon" aria-label="Share move" onClick={share}>
+                  <SaveMoveButton moveRef={move.id} compact />
+                  <Button variant="ghost" size="icon" aria-label="Share this Move" onClick={share}>
                     <Share2 />
                   </Button>
                 </div>
               </div>
-              <p className="mt-3 min-h-5 text-xs" aria-live="polite">
-                {note}
-              </p>
+              <Button asChild variant="editorial" className="mt-4">
+                <Link to="/library/$slug" params={{ slug: move.slug }}>READ THE FULL MOVE <ArrowRight /></Link>
+              </Button>
+              <p className="mt-3 min-h-5 text-xs" aria-live="polite">{note}</p>
             </>
           )}
         </article>

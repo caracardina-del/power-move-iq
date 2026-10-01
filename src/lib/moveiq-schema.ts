@@ -57,12 +57,22 @@ export const analysisSchema = z.object({
     source: z.string().optional(),
   }),
   exit_line: z.object({ conditions: list, line: z.string().default("") }),
+  /** Canonical grounding: ids of Library Moves the recommendation is built on. Validated server-side. */
+  move_refs: z
+    .object({ primary: z.string().nullable().default(null), alternatives: z.array(z.string()).default([]) })
+    .default({ primary: null, alternatives: [] }),
+  /** The model's own reading of the situation, kept separate from what the user selected. */
+  inferred: z
+    .object({ situation: z.string().default(""), goal: z.string().default("") })
+    .default({ situation: "", goal: "" }),
 });
 
 export type FullAnalysis = z.infer<typeof analysisSchema>;
 
 /** What free accounts receive. Stored in this shape so the full read never reaches a free client. */
 export type LimitedAnalysis = Pick<FullAnalysis, "title" | "read" | "dont_do"> & {
+  move_refs?: FullAnalysis["move_refs"];
+  inferred?: FullAnalysis["inferred"];
   move: Pick<FullAnalysis["move"], "headline" | "recommended">;
 };
 
@@ -75,6 +85,8 @@ export function limit(a: FullAnalysis): LimitedAnalysis {
     read: a.read,
     dont_do: a.dont_do,
     move: { headline: a.move.headline, recommended: a.move.recommended },
+    move_refs: { primary: a.move_refs.primary, alternatives: [] },
+    inferred: a.inferred,
   };
 }
 
@@ -89,3 +101,11 @@ export const SITUATION_TYPES = [
 ] as const;
 export const URGENCIES = ["Decision today", "Decision this week", "Exploring options"] as const;
 export const FREE_MONTHLY_LIMIT = 3;
+
+export const GOAL_OPTIONS = [
+  ["clarity", "Get clarity"], ["protect_value", "Protect value"], ["negotiate_terms", "Negotiate terms"],
+  ["set_boundary", "Set a boundary"], ["gain_commitment", "Gain commitment"], ["resolve_conflict", "Resolve conflict"],
+  ["de_escalate", "De-escalate tension"], ["prepare_escalation", "Prepare for escalation"],
+  ["recover_relationship", "Recover the relationship"], ["decide_walk_away", "Decide whether to walk away"],
+] as const;
+export const GOAL_IDS_INTAKE = GOAL_OPTIONS.map((g) => g[0]) as unknown as readonly [string, ...string[]];

@@ -4,6 +4,7 @@
  */
 import { CATEGORIES, MOVES_PER_CATEGORY, TOTAL_MOVES } from "@/content/moves/taxonomy";
 import { FREE_MONTHLY_LIMIT } from "./moveiq-schema";
+import { PAST_DUE_GRACE_DAYS } from "./billing-policy";
 
 export const PRODUCT = {
   plannedMoves: TOTAL_MOVES,
@@ -15,6 +16,8 @@ export const PRODUCT = {
   guestAnalyses: 1,
   price: { monthly: "$14.99", annual: "$99" },
   cardRequiredForFree: false,
+  trial: null,
+  pastDueGraceDays: PAST_DUE_GRACE_DAYS,
 } as const;
 
 export type AccessLevel = "guest" | "free" | "pro" | "pro_canceling" | "pro_past_due" | "expired";
@@ -28,6 +31,6 @@ export const ENTITLEMENTS: Record<AccessLevel, {
   free: { analyses: `${FREE_MONTHLY_LIMIT} per month`, analysisDepth: "limited", freeMoves: true, proMoves: false, saveCases: true, outcomeMemory: false, followUp: false, ownContent: "full" },
   pro: { analyses: "Unlimited", analysisDepth: "full", freeMoves: true, proMoves: true, saveCases: true, outcomeMemory: true, followUp: true, ownContent: "full" },
   pro_canceling: { analyses: "Unlimited until period end", analysisDepth: "full", freeMoves: true, proMoves: true, saveCases: true, outcomeMemory: true, followUp: true, ownContent: "full" },
-  pro_past_due: { analyses: "Unlimited during Stripe retry window", analysisDepth: "full", freeMoves: true, proMoves: true, saveCases: true, outcomeMemory: true, followUp: true, ownContent: "full" },
+  pro_past_due: { analyses: `Unlimited for up to ${PAST_DUE_GRACE_DAYS} days after the period end while payment is retried`, analysisDepth: "full", freeMoves: true, proMoves: true, saveCases: true, outcomeMemory: true, followUp: true, ownContent: "full" },
   expired: { analyses: `${FREE_MONTHLY_LIMIT} per month`, analysisDepth: "limited", freeMoves: true, proMoves: false, saveCases: true, outcomeMemory: false, followUp: false, ownContent: "read" },
 };

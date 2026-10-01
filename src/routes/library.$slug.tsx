@@ -7,6 +7,7 @@ import { StatePanel, ProLock } from "@/components/power/ui";
 import { getMove, getMoveFull } from "@/lib/moves.functions";
 import { categoryLabel, labelOf, SITUATIONS, GOALS, RISK_LABELS } from "@/content/moves/taxonomy";
 import { useAuthUser } from "@/hooks/use-auth-user";
+import { SaveMoveButton } from "@/components/power/save-move";
 
 export const Route = createFileRoute("/library/$slug")({
   loader: async ({ params }) => {
@@ -77,6 +78,11 @@ function MovePage() {
       <nav aria-label="Breadcrumb" className="mb-6 text-sm">
         <Link to="/library" search={{}} className="underline">Library</Link> <span aria-hidden>›</span> {categoryLabel(m.category)}
       </nav>
+      {m.reviewDraft && (
+        <p role="note" className="mb-4 rounded border border-primary p-3 text-sm">
+          REVIEW DRAFT — not yet approved by a human editor; visible only in the unpublished preview.
+        </p>
+      )}
       <p className="eyebrow">MOVE {String(m.number).padStart(2, "0")} · {categoryLabel(m.category).toUpperCase()} · {m.access === "pro" ? "PRO" : "FREE"}</p>
       <h1 className="serif m-0 text-4xl leading-tight md:text-5xl">{m.title}</h1>
       <p className="mt-4 text-lg leading-relaxed">{m.summary}</p>
@@ -153,11 +159,12 @@ function MovePage() {
 
       <div className="mt-10 flex flex-wrap items-center gap-3">
         <Button asChild><Link to="/analyze" search={{ prompt: "" }}>ANALYZE MY SITUATION</Link></Button>
+        <SaveMoveButton moveRef={m.id} />
         <Button type="button" variant="outline" onClick={share}>SHARE MOVE</Button>
         <p className="m-0 text-sm" aria-live="polite">{note}</p>
       </div>
       <p className="mt-8 text-xs opacity-80">
-        Content version {m.editorial.version} · {m.editorial.lastReviewed ? `Last reviewed ${m.editorial.lastReviewed}` : "Awaiting editorial review"} · Educational decision support, not legal, financial or employment advice.
+        Content version {m.editorial.version} · Drafted by {m.editorial.owner} · {m.editorial.reviewer ? `Reviewed by ${m.editorial.reviewer} on ${m.editorial.lastReviewed}` : "Not yet human-reviewed"} · Educational decision support, not legal, financial or employment advice.
       </p>
     </article>
   );
