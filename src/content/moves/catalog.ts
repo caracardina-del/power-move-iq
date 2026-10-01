@@ -8,17 +8,40 @@ import { CATEGORIES, CATEGORY_IDS, MOVES_PER_CATEGORY, TOTAL_MOVES } from "./tax
 import { FRAMING } from "./batch-01-framing";
 import { INFORMATION } from "./batch-02-information";
 import { DECISION } from "./batch-03-decision";
+import { LEVERAGE } from "./batch-04-leverage";
+import { POSITIONING } from "./batch-05-positioning";
+import { PRICING } from "./batch-06-pricing";
+import { SCOPE } from "./batch-07-scope";
+import { TIMING } from "./batch-08-timing";
+import { BOUNDARIES } from "./batch-09-boundaries";
+import { TRADES } from "./batch-10-trades";
+import { COMMITMENT } from "./batch-11-commitment";
+import { ACCOUNTABILITY } from "./batch-12-accountability";
+import { REPAIR } from "./batch-13-repair";
+import { ESCALATION } from "./batch-14-escalation";
+import { EXIT } from "./batch-15-exit";
 
-const RAW = [...FRAMING, ...INFORMATION, ...DECISION];
+const RAW = [
+  ...FRAMING, ...INFORMATION, ...DECISION, ...LEVERAGE, ...POSITIONING, ...PRICING, ...SCOPE, ...TIMING,
+  ...BOUNDARIES, ...TRADES, ...COMMITMENT, ...ACCOUNTABILITY, ...REPAIR, ...ESCALATION, ...EXIT,
+];
 
 export const MOVES: Move[] = RAW.map((m) => moveSchema.parse(m)).sort((a, b) => a.number - b.number);
 
 export const byId = new Map(MOVES.map((m) => [m.id, m]));
 export const bySlug = new Map(MOVES.map((m) => [m.slug, m]));
 
-/** Moves that may be recommended (retired/archived/draft are excluded). */
-export const recommendable = () =>
-  MOVES.filter((m) => m.editorial.status === "published" || m.editorial.status === "approved" || m.editorial.status === "in_review");
+/**
+ * Governance. Production shows and recommends ONLY `published` Moves.
+ * Editorial preview (unpublished preview hosts only) additionally shows `in_review`
+ * Moves, always labelled "Review draft". Draft, retired and archived never surface.
+ */
+export type CatalogMode = "production" | "editorial_preview";
+export const isVisible = (m: Move, mode: CatalogMode) =>
+  m.editorial.status === "published" || (mode === "editorial_preview" && m.editorial.status === "in_review");
+export const visibleMoves = (mode: CatalogMode) => MOVES.filter((m) => isVisible(m, mode));
+/** Back-compat alias: production-safe recommendation pool. */
+export const recommendable = (mode: CatalogMode = "production") => visibleMoves(mode);
 
 export type ValidationIssue = { level: "error" | "pending"; id: string; message: string };
 
