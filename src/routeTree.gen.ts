@@ -24,6 +24,7 @@ import { Route as TodayRouteImport } from './routes/today'
 import { Route as WeeklyRouteImport } from './routes/weekly'
 import { Route as AnalysisCaseIdRouteImport } from './routes/analysis.$caseId'
 import { Route as LibraryIndexRouteImport } from './routes/library.index'
+import { Route as LibrarySlugRouteImport } from './routes/library.$slug'
 import { Route as ApiPublicStripeWebhookRouteImport } from './routes/api/public/stripe-webhook'
 
 const IndexRoute = IndexRouteImport.update({
@@ -101,6 +102,11 @@ const LibraryIndexRoute = LibraryIndexRouteImport.update({
   path: '/library/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LibrarySlugRoute = LibrarySlugRouteImport.update({
+  id: '/library/$slug',
+  path: '/library/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicStripeWebhookRoute = ApiPublicStripeWebhookRouteImport.update({
   id: '/api/public/stripe-webhook',
   path: '/api/public/stripe-webhook',
@@ -122,6 +128,7 @@ export interface FileRoutesByFullPath {
   '/today': typeof TodayRoute
   '/weekly': typeof WeeklyRoute
   '/analysis/$caseId': typeof AnalysisCaseIdRoute
+  '/library/$slug': typeof LibrarySlugRoute
   '/library/': typeof LibraryIndexRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
 }
@@ -140,6 +147,7 @@ export interface FileRoutesByTo {
   '/today': typeof TodayRoute
   '/weekly': typeof WeeklyRoute
   '/analysis/$caseId': typeof AnalysisCaseIdRoute
+  '/library/$slug': typeof LibrarySlugRoute
   '/library': typeof LibraryIndexRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
 }
@@ -159,6 +167,7 @@ export interface FileRoutesById {
   '/today': typeof TodayRoute
   '/weekly': typeof WeeklyRoute
   '/analysis/$caseId': typeof AnalysisCaseIdRoute
+  '/library/$slug': typeof LibrarySlugRoute
   '/library/': typeof LibraryIndexRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
 }
@@ -179,6 +188,7 @@ export interface FileRouteTypes {
     | '/today'
     | '/weekly'
     | '/analysis/$caseId'
+    | '/library/$slug'
     | '/library/'
     | '/api/public/stripe-webhook'
   fileRoutesByTo: FileRoutesByTo
@@ -197,6 +207,7 @@ export interface FileRouteTypes {
     | '/today'
     | '/weekly'
     | '/analysis/$caseId'
+    | '/library/$slug'
     | '/library'
     | '/api/public/stripe-webhook'
   id:
@@ -215,6 +226,7 @@ export interface FileRouteTypes {
     | '/today'
     | '/weekly'
     | '/analysis/$caseId'
+    | '/library/$slug'
     | '/library/'
     | '/api/public/stripe-webhook'
   fileRoutesById: FileRoutesById
@@ -234,6 +246,7 @@ export interface RootRouteChildren {
   TodayRoute: typeof TodayRoute
   WeeklyRoute: typeof WeeklyRoute
   AnalysisCaseIdRoute: typeof AnalysisCaseIdRoute
+  LibrarySlugRoute: typeof LibrarySlugRoute
   LibraryIndexRoute: typeof LibraryIndexRoute
   ApiPublicStripeWebhookRoute: typeof ApiPublicStripeWebhookRoute
 }
@@ -345,6 +358,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LibraryIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/library/$slug': {
+      id: '/library/$slug'
+      path: '/library/$slug'
+      fullPath: '/library/$slug'
+      preLoaderRoute: typeof LibrarySlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/stripe-webhook': {
       id: '/api/public/stripe-webhook'
       path: '/api/public/stripe-webhook'
@@ -370,6 +390,7 @@ const rootRouteChildren: RootRouteChildren = {
   TodayRoute: TodayRoute,
   WeeklyRoute: WeeklyRoute,
   AnalysisCaseIdRoute: AnalysisCaseIdRoute,
+  LibrarySlugRoute: LibrarySlugRoute,
   LibraryIndexRoute: LibraryIndexRoute,
   ApiPublicStripeWebhookRoute: ApiPublicStripeWebhookRoute,
 }
