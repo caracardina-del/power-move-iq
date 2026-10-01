@@ -26,7 +26,13 @@ const RAW = [
   ...BOUNDARIES, ...TRADES, ...COMMITMENT, ...ACCOUNTABILITY, ...REPAIR, ...ESCALATION, ...EXIT,
 ];
 
-export const MOVES: Move[] = RAW.map((m) => moveSchema.parse(m)).sort((a, b) => a.number - b.number);
+export const PARSE_ERRORS: string[] = [];
+export const MOVES: Move[] = RAW.flatMap((m) => {
+  const r = moveSchema.safeParse(m);
+  if (r.success) return [r.data];
+  PARSE_ERRORS.push(`${m.id}: ${r.error.issues.map((i) => `${i.path.join(".")} ${i.message}`).join("; ")}`);
+  return [];
+}).sort((a, b) => a.number - b.number);
 
 export const byId = new Map(MOVES.map((m) => [m.id, m]));
 export const bySlug = new Map(MOVES.map((m) => [m.slug, m]));
@@ -54,7 +60,7 @@ const jaccard = (a: Set<string>, b: Set<string>) => {
 
 /** Editorial validation and duplicate detection (audit items 11, 12, 129). */
 export function validateCatalog(moves: Move[] = MOVES): ValidationIssue[] {
-  const issues: ValidationIssue[] = [];
+  const issues: ValidationIssue[] = PARSE_ERRORS.map((e) => ({ level: "error" as const, id: e.slice(0, 6), message: e }));
   const seen = (key: string, pick: (m: Move) => string, label: string) => {
     const map = new Map<string, string>();
     for (const m of moves) {
