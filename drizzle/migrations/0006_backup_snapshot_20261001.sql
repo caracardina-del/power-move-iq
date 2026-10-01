@@ -1,0 +1,15 @@
+CREATE SCHEMA IF NOT EXISTS pmiq_backup_20261001;
+REVOKE ALL ON SCHEMA pmiq_backup_20261001 FROM PUBLIC, anon, authenticated;
+CREATE TABLE pmiq_backup_20261001.profiles AS SELECT * FROM public.profiles;
+CREATE TABLE pmiq_backup_20261001.analyses AS SELECT * FROM public.analyses;
+CREATE TABLE pmiq_backup_20261001.outcomes AS SELECT * FROM public.outcomes;
+CREATE TABLE pmiq_backup_20261001.favorite_moves AS SELECT * FROM public.favorite_moves;
+CREATE TABLE pmiq_backup_20261001.streaks AS SELECT * FROM public.streaks;
+CREATE TABLE pmiq_backup_20261001.moves AS SELECT * FROM public.moves;
+CREATE TABLE pmiq_backup_20261001.weekly_lenses AS SELECT * FROM public.weekly_lenses;
+CREATE TABLE pmiq_backup_20261001.guest_analyses AS SELECT * FROM public.guest_analyses;
+CREATE TABLE pmiq_backup_20261001.stripe_subscriptions AS SELECT * FROM public.stripe_subscriptions;
+CREATE TABLE pmiq_backup_20261001.subscriptions AS SELECT * FROM public.subscriptions;
+CREATE TABLE pmiq_backup_20261001.stripe_events AS SELECT * FROM public.stripe_events;
+CREATE TABLE pmiq_backup_20261001.user_roles AS SELECT * FROM public.user_roles;
+COMMENT ON SCHEMA pmiq_backup_20261001 IS 'Recoverable snapshot taken before master-audit migrations, from commit 0d265bc. Do not modify.';

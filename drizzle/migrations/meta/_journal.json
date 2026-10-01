@@ -43,6 +43,13 @@
       "when": 1790731160069,
       "tag": "0005_guest_analyses",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790888254495,
+      "tag": "0006_backup_snapshot_20261001",
+      "breakpoints": true
     }
   ]
 }
