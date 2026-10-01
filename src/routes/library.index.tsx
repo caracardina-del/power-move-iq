@@ -1,145 +1,128 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useMemo } from "react";
+import { z } from "zod";
 import { PageHeader } from "@/components/power/shell";
-import { categories } from "@/lib/power-move-data";
+import { StatePanel } from "@/components/power/ui";
+import { listMoves } from "@/lib/moves.functions";
+import { CATEGORIES, GOALS, SITUATIONS, RISK_LABELS, categoryLabel, TOTAL_MOVES } from "@/content/moves/taxonomy";
+import { PRODUCT } from "@/lib/product-facts";
 
-const moves = [
-  {
-    title: "Name the decision",
-    category: "Decision",
-    principle: "Write the choice and deadline in one sentence before debating tactics.",
-    guidance: "Separate facts from assumptions. Decide what answer you need, from whom, and by when.",
-  },
-  {
-    title: "Price the change",
-    category: "Pricing",
-    principle: "When scope changes, show the trade between deliverables, fee, and timing.",
-    guidance:
-      "Offer the original scope at the original fee or a revised option for the added work. Put both paths in writing.",
-  },
-  {
-    title: "Hold the silence",
-    category: "Communication",
-    principle: "After a clear proposal, allow the other side time to answer.",
-    guidance:
-      "State the terms once, then set a reasonable follow-up date. Do not negotiate against yourself to fill the pause.",
-  },
-  {
-    title: "Separate urgency from value",
-    category: "Negotiation",
-    principle: "A short deadline does not make a weak offer stronger.",
-    guidance: "Ask what decision actually depends on the date and request the time needed to verify the terms.",
-  },
-  {
-    title: "Trade, never concede",
-    category: "Leverage",
-    principle: "Attach every meaningful concession to a specific return.",
-    guidance:
-      "If you reduce price, change scope, timing, commitment, or payment terms in exchange. Make the trade explicit.",
-  },
-  {
-    title: "Ask for the constraint",
-    category: "Negotiation",
-    principle: "Find out whether the obstacle is budget, authority, timing, or confidence.",
-    guidance: "Ask which constraint prevents a yes. Solve that constraint instead of offering a discount by default.",
-  },
-  {
-    title: "Set the next checkpoint",
-    category: "Communication",
-    principle: "A conversation is unfinished until someone owns the next step and date.",
-    guidance: "Recap the decision, named owner, and checkpoint in a short written note after the meeting.",
-  },
-  {
-    title: "Make the alternative real",
-    category: "Leverage",
-    principle: "Your backup option must be feasible before it becomes negotiating strength.",
-    guidance: "Identify the next client, role, supplier, or timing path you could actually take. Never bluff about it.",
-  },
-  {
-    title: "Define the walk-away",
-    category: "Boundaries",
-    principle: "Set your limit before pressure makes the decision for you.",
-    guidance: "Write down the minimum acceptable terms and what you will do if they are not met.",
-  },
-  {
-    title: "Document the agreement",
-    category: "Decision",
-    principle: "Turn a verbal yes into a shared record of what happens next.",
-    guidance: "Confirm scope, fee, timing, responsibilities, and approval in writing before work expands.",
-  },
-];
+const searchSchema = z.object({
+  q: z.string().max(80).catch("").default(""),
+  cat: z.string().max(30).catch("").default(""),
+  sit: z.string().max(30).catch("").default(""),
+  goal: z.string().max(30).catch("").default(""),
+  risk: z.string().max(10).catch("").default(""),
+  access: z.string().max(10).catch("").default(""),
+  sort: z.enum(["number", "alpha"]).catch("number").default("number"),
+});
 
 export const Route = createFileRoute("/library/")({
+  validateSearch: searchSchema,
   head: () => ({
     meta: [
-      { title: "The Move Index — Power Move IQ" },
-      {
-        name: "description",
-        content: "Ten practical strategic moves for negotiation, pricing, leverage, communication, and decisions.",
-      },
-      { property: "og:title", content: "The Move Index — Power Move IQ" },
-      { property: "og:description", content: "Build practical strategic judgment, one move at a time." },
+      { title: "The Move Library — Power Move IQ" },
+      { name: "description", content: `Strategic Moves for negotiation, pricing, boundaries and difficult conversations, organised into ${PRODUCT.categories} categories.` },
+      { property: "og:title", content: "The Move Library — Power Move IQ" },
+      { property: "og:description", content: "Search practical strategic Moves by situation, goal and risk." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
+  loader: () => listMoves(),
+  errorComponent: () => <StatePanel type="error" title="The Library could not load." body="Please refresh the page." />,
+  notFoundComponent: () => <StatePanel title="Not found" body="This page does not exist." />,
   component: Library,
 });
 
 function Library() {
-  const [cat, setCat] = useState("All");
-  const [open, setOpen] = useState<number | null>(null);
-  const visible = moves
-    .map((move, index) => ({ ...move, number: index + 1 }))
-    .filter((move) => cat === "All" || move.category === cat);
+  const moves = Route.useLoaderData();
+  const s = Route.useSearch();
+  const nav = useNavigate({ from: "/library/" });
+  const set = (patch: Partial<typeof s>) => void nav({ search: (p) => ({ ...p, ...patch }), replace: true });
+  const filtered = useMemo(() => {
+    const q = s.q.trim().toLowerCase();
+    const out = moves.filter(
+      (m) =>
+        (!q || q.split(/\s+/).every((w) => m.searchText.includes(w))) &&
+        (!s.cat || m.category === s.cat) &&
+        (!s.sit || (m.situations as string[]).includes(s.sit)) &&
+        (!s.goal || (m.goals as string[]).includes(s.goal)) &&
+        (!s.risk || m.risk === s.risk) &&
+        (!s.access || m.access === s.access),
+    );
+    return out.sort((a, b) => (s.sort === "alpha" ? a.title.localeCompare(b.title) : a.number - b.number));
+  }, [moves, s]);
+  const active = !!(s.q || s.cat || s.sit || s.goal || s.risk || s.access);
+  const sel = "field !py-2 !text-sm";
   return (
     <div className="page-shell">
       <PageHeader
-        eyebrow="THE INDEX · FOUNDATIONAL MOVES"
-        title="The Move Index"
-        intro="Ten practical moves to use now. Open a card for the action behind the principle. More moves are being developed."
+        eyebrow={`THE LIBRARY · ${moves.length} OF ${TOTAL_MOVES} MOVES PUBLISHED`}
+        title="The Move Library"
+        intro={`The Library is being built as ${PRODUCT.structure}. ${moves.length} Moves are available now; the rest are in authoring and will appear here as each is completed.`}
       />
-      <div className="filter-bar" aria-label="Filter moves by category">
-        {categories.map((name) => (
-          <button
-            type="button"
-            className={"filter " + (cat === name ? "active" : "")}
-            onClick={() => {
-              setCat(name);
-              setOpen(null);
-            }}
-            key={name}
-          >
-            {name}
+      <form className="mb-6 grid gap-3 md:grid-cols-[2fr_repeat(3,1fr)]" role="search" onSubmit={(e) => e.preventDefault()}>
+        <label className="sr-only" htmlFor="lib-q">Search Moves</label>
+        <input id="lib-q" className={sel} placeholder="Search title, principle, situation…" value={s.q} onChange={(e) => set({ q: e.target.value })} />
+        <label className="sr-only" htmlFor="lib-cat">Category</label>
+        <select id="lib-cat" className={sel} value={s.cat} onChange={(e) => set({ cat: e.target.value })}>
+          <option value="">All categories</option>
+          {CATEGORIES.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+        </select>
+        <label className="sr-only" htmlFor="lib-sit">Situation</label>
+        <select id="lib-sit" className={sel} value={s.sit} onChange={(e) => set({ sit: e.target.value })}>
+          <option value="">All situations</option>
+          {SITUATIONS.map(([id, l]) => <option key={id} value={id}>{l}</option>)}
+        </select>
+        <label className="sr-only" htmlFor="lib-goal">Goal</label>
+        <select id="lib-goal" className={sel} value={s.goal} onChange={(e) => set({ goal: e.target.value })}>
+          <option value="">All goals</option>
+          {GOALS.map(([id, l]) => <option key={id} value={id}>{l}</option>)}
+        </select>
+      </form>
+      <div className="mb-6 flex flex-wrap items-center gap-3 text-sm">
+        <select aria-label="Risk level" className={sel} value={s.risk} onChange={(e) => set({ risk: e.target.value })}>
+          <option value="">Any risk</option>
+          {Object.entries(RISK_LABELS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+        </select>
+        <select aria-label="Access" className={sel} value={s.access} onChange={(e) => set({ access: e.target.value })}>
+          <option value="">Free and Pro</option>
+          <option value="free">Free</option>
+          <option value="pro">Pro</option>
+        </select>
+        <select aria-label="Sort" className={sel} value={s.sort} onChange={(e) => set({ sort: e.target.value as "number" | "alpha" })}>
+          <option value="number">Sort: Move number</option>
+          <option value="alpha">Sort: A–Z</option>
+        </select>
+        <p className="m-0" aria-live="polite">{filtered.length} {filtered.length === 1 ? "Move" : "Moves"}</p>
+        {active && (
+          <button type="button" className="underline" onClick={() => nav({ search: { q: "", cat: "", sit: "", goal: "", risk: "", access: "", sort: s.sort }, replace: true })}>
+            Clear filters
           </button>
-        ))}
+        )}
       </div>
-      <div className="library-grid">
-        {visible.map((move) => (
-          <button
-            type="button"
-            className="move-card text-left w-full cursor-pointer"
-            key={move.number}
-            aria-expanded={open === move.number}
-            onClick={() => setOpen(open === move.number ? null : move.number)}
-          >
-            <span className="num">{String(move.number).padStart(2, "0")}</span>
-            <h3>{move.title}</h3>
-            <p>{move.principle}</p>
-            {open === move.number && (
-              <p className="mt-5 border-t border-current/20 pt-4">
-                <strong>PUT IT TO WORK</strong>
-                <br />
-                {move.guidance}
-              </p>
-            )}
-            <footer>
-              <span>{move.category}</span>
-              <span>{open === move.number ? "CLOSE −" : "OPEN +"}</span>
-            </footer>
-          </button>
-        ))}
-      </div>
+      {filtered.length === 0 ? (
+        <StatePanel title="No Moves match." body="Try fewer words, or clear a filter. Not every category is fully authored yet.">
+          <button type="button" className="underline" onClick={() => nav({ search: { q: "", cat: "", sit: "", goal: "", risk: "", access: "", sort: "number" } })}>Clear all filters</button>
+        </StatePanel>
+      ) : (
+        <ul className="library-grid list-none p-0">
+          {filtered.map((m) => (
+            <li key={m.id}>
+              <Link to="/library/$slug" params={{ slug: m.slug }} className="move-card block h-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+                <span className="num">{String(m.number).padStart(2, "0")}</span>
+                <h3>{m.title}</h3>
+                <p>{m.summary}</p>
+                <footer>
+                  <span>{categoryLabel(m.category)}</span>
+                  <span>{m.access === "pro" ? "PRO" : "FREE"}</span>
+                </footer>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
