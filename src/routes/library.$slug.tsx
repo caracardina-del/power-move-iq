@@ -43,7 +43,7 @@ function List({ title, items }: { title: string; items: string[] }) {
   return (
     <section className="mt-8">
       <h2 className="eyebrow">{title}</h2>
-      <ul className="m-0 grid gap-2 pl-5 leading-relaxed">{items.map((i) => <li key={i}>{i}</li>)}</ul>
+      <ul className="m-0 grid list-disc gap-2 pl-5 leading-relaxed">{items.map((i) => <li key={i}>{i}</li>)}</ul>
     </section>
   );
 }
@@ -96,7 +96,7 @@ function MovePage() {
           <List title="PREPARATION" items={full.preparation} />
           <section className="mt-8">
             <h2 className="eyebrow">STEP BY STEP</h2>
-            <ol className="m-0 grid gap-2 pl-5 leading-relaxed">{full.steps.map((st) => <li key={st}>{st}</li>)}</ol>
+            <ol className="m-0 grid list-decimal gap-2 pl-5 leading-relaxed">{full.steps.map((st) => <li key={st}>{st}</li>)}</ol>
           </section>
           <section className="mt-8">
             <h2 className="eyebrow">OPENING LINE</h2>
