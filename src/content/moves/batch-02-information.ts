@@ -3,7 +3,7 @@ import { DRAFT_EDITORIAL, type MoveInput } from "./schema";
 /** Category: Information Gathering (Moves 7–12). */
 export const INFORMATION: MoveInput[] = [
   {
-    id: "mv_007", number: 7, slug: "ask-the-calibrated-question", title: "Ask the Open 'How' Question",
+    id: "mv_007", number: 7, slug: "ask-the-open-how-question", title: "Ask the Open 'How' Question",
     summary: "Replace yes/no questions with open 'how' and 'what' questions that make the other side explain their constraints in their own words.",
     category: "information", situations: ["offer", "pricing", "vendor", "compensation"],
     goals: ["clarity", "negotiate_terms"], channels: ["in_person", "phone", "video", "email"],
@@ -139,7 +139,7 @@ export const INFORMATION: MoveInput[] = [
     related: ["mv_002", "mv_031", "mv_022"], access: "pro", editorial: DRAFT_EDITORIAL,
   },
   {
-    id: "mv_011", number: 11, slug: "listen-for-the-tell", title: "Listen for the Priority Signal",
+    id: "mv_011", number: 11, slug: "listen-for-the-priority-signal", title: "Listen for the Priority Signal",
     summary: "Notice which topics the other side returns to, avoids or emphasises; those patterns show what matters most to them.",
     category: "information", situations: ["offer", "vendor", "partnership", "pricing"],
     goals: ["clarity", "negotiate_terms"], channels: ["in_person", "video", "phone"],
