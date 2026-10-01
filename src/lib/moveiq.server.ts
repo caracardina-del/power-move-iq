@@ -36,19 +36,29 @@ Respond with a single JSON object with exactly these keys:
 "second_move": {"if_success": string, "if_failure": string, "if_no_response": string},
 "dont_do": {"action": string, "why": string},
 "precedent": {"include": boolean, "omitted_reason"?: string, "name"?: string, "what_happened"?: string, "principle"?: string, "parallel"?: string, "breaks_down"?: string, "source"?: string},
-"exit_line": {"conditions": string[], "line": string}}`;
+"exit_line": {"conditions": string[], "line": string},
+"move_refs": {"primary": string|null, "alternatives": string[]} (ids ONLY from the LIBRARY MOVES list provided; primary is the Library Move the recommendation applies; null if none fits; never invent ids),
+"inferred": {"situation": string, "goal": string} (your own short reading of the situation type and the user's goal)}`;
 
 export class AnalysisError extends Error {}
+
+export type Candidate = { id: string; title: string; principle: string };
 
 export async function generateAnalysis(input: {
   situation: string;
   type: string;
   urgency: string;
+  goal?: string | undefined;
   prior?: string | undefined;
-}): Promise<FullAnalysis> {
+  candidates?: Candidate[];
+}): Promise<FullAnalysis & { grounding: { status: "grounded" | "ungrounded" | "no_catalog"; attempts: number } }> {
+  const allowed = new Set((input.candidates ?? []).map((c) => c.id));
+  const library = input.candidates?.length
+    ? `\nLIBRARY MOVES (choose move_refs only from these ids):\n${input.candidates.map((c) => `${c.id} | ${c.title} | ${c.principle}`).join("\n")}\n`
+    : "\nLIBRARY MOVES: none available. Set move_refs.primary to null and alternatives to [].\n";
   const key = process.env["LOVABLE_API_KEY"];
   if (!key) throw new AnalysisError("Analysis is temporarily unavailable.");
-  const user = `Situation type: ${input.type}\nUrgency: ${input.urgency}\n${input.prior ? `PRIOR ANALYSIS AND WHAT HAPPENED SINCE (this is a follow-up):\n${input.prior}\n\n` : ""}Situation:\n${input.situation}`;
+  const user = `Situation type (user-selected): ${input.type}\nUrgency: ${input.urgency}\n${input.goal ? `User goal: ${input.goal}\n` : ""}${library}${input.prior ? `PRIOR ANALYSIS AND WHAT HAPPENED SINCE (this is a follow-up):\n${input.prior}\n\n` : ""}Situation:\n${input.situation}`;
   for (let attempt = 0; attempt < 2; attempt++) {
     let res: Response;
     try {
@@ -81,9 +91,22 @@ export async function generateAnalysis(input: {
     try {
       const parsed = analysisSchema.safeParse(JSON.parse(raw.replace(/^```(json)?|```$/g, "").trim()));
       if (parsed.success) {
+        const refs = parsed.data.move_refs;
+        const primaryOk = refs.primary === null || allowed.has(refs.primary);
+        if (!primaryOk && attempt === 0) {
+          console.error("Ungrounded move ref; retrying");
+          continue;
+        }
+        // Fallback: drop any id not in the provided candidate list. Never surface invented references.
+        const move_refs = {
+          primary: refs.primary && allowed.has(refs.primary) ? refs.primary : null,
+          alternatives: [...new Set(refs.alternatives.filter((x) => allowed.has(x) && x !== refs.primary))].slice(0, 3),
+        };
         // Do not publish AI-generated historical citations without source verification.
         return {
           ...parsed.data,
+          move_refs,
+          grounding: { status: !allowed.size ? "no_catalog" : move_refs.primary ? "grounded" : "ungrounded", attempts: attempt + 1 },
           precedent: {
             include: false,
             omitted_reason:
