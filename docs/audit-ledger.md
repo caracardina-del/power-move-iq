@@ -5,27 +5,27 @@ Baseline commit 0d265bcba90c55a67e409ab490fa709df09a1c82. Data snapshot: schema 
 
 | # | Item | Status | Evidence / notes |
 |---|---|---|---|
-| 1 | Preserve production and user data | OPEN | |
-| 2 | Repair the broken unpublished build | OPEN | |
-| 3 | Verify every existing route | OPEN | |
-| 4 | Remove the fake 90-Move generator | OPEN | |
-| 5 | Build 90 genuinely distinct canonical Moves | OPEN | |
-| 6 | Define a coherent 90-Move taxonomy | OPEN | |
-| 7 | Fix the “10 principles × 6 domains” contradiction | OPEN | |
-| 8 | Create one canonical source of Move truth | OPEN | |
-| 9 | Move content out of an anonymous frontend array | OPEN | |
-| 10 | Add content versioning | OPEN | |
-| 11 | Add editorial validation | OPEN | |
-| 12 | Add duplicate detection | OPEN | |
-| 13 | Support Move retirement safely | OPEN | |
-| 14 | Add permanent Move routes | OPEN | |
-| 15 | Make Library cards functional | OPEN | |
-| 16 | Build the full Move page | OPEN | |
-| 17 | Add Move actions | OPEN | |
-| 18 | Add full-text search | OPEN | |
-| 19 | Add useful filters | OPEN | |
-| 20 | Add sorting | OPEN | |
-| 21 | Add Library navigation aids | OPEN | |
+| 1 | Preserve production and user data | PARTIAL | DB snapshot verified for 12 app tables; Auth user export not made; no publish; no records deleted. |
+| 2 | Repair the broken unpublished build | VERIFIED | Build OK; tsgo clean after fixing pricing Link search param; no runtime page errors on 15 routes. |
+| 3 | Verify every existing route | VERIFIED | Playwright: 13 routes 200, unknown route and missing Move 404 (2026-10-01 preview). |
+| 4 | Remove the fake 90-Move generator | PARTIAL | Library now reads canonical catalog; legacy generator still used by Today/Home/analysis. |
+| 5 | Build 90 genuinely distinct canonical Moves | PARTIAL | 18 of 90 authored (categories 1-3), status in_review, no human reviewer claimed. |
+| 6 | Define a coherent 90-Move taxonomy | VERIFIED | 15 categories x 6; situations/goals independent tags (taxonomy.ts). |
+| 7 | Fix the “10 principles × 6 domains” contradiction | PARTIAL | product-facts.ts holds structure wording; old copy elsewhere not yet swept. |
+| 8 | Create one canonical source of Move truth | PARTIAL | src/content/moves/catalog.ts is canonical; DB moves table still legacy. |
+| 9 | Move content out of an anonymous frontend array | PARTIAL | Content in versioned modules, served via server functions; no CMS/DB table yet. |
+| 10 | Add content versioning | PARTIAL | version/status/owner/reviewer fields present; no history storage. |
+| 11 | Add editorial validation | VERIFIED | scripts/validate-moves.ts: 18 parsed, 0 errors. |
+| 12 | Add duplicate detection | VERIFIED | Exact + near-duplicate (title/principle/script) checks in validateCatalog. |
+| 13 | Support Move retirement safely | PARTIAL | retired/replacedBy fields + validator pending check; no redirect UI. |
+| 14 | Add permanent Move routes | VERIFIED | /library/$slug renders; bad slug returns 404. |
+| 15 | Make Library cards functional | VERIFIED | Cards are links to detail pages. |
+| 16 | Build the full Move page | PARTIAL | Full page with all fields; Pro fields gated server-side (getMoveFull). Pro unlock not browser-tested. |
+| 17 | Add Move actions | PARTIAL | Share + copy script done; save/add-to-plan not yet. |
+| 18 | Add full-text search | PARTIAL | Search over title/summary/principle/tags/example/opening line; Playwright q=silence loads. |
+| 19 | Add useful filters | PARTIAL | Category/situation/goal/risk/access filters, URL-persisted; channel/relationship not exposed. |
+| 20 | Add sorting | PARTIAL | Number and A-Z sort. |
+| 21 | Add Library navigation aids | PARTIAL | Result count, clear filters, breadcrumb. |
 | 22 | Refine the situation taxonomy | OPEN | |
 | 23 | Add goal selection | OPEN | |
 | 24 | Improve classification | OPEN | |
@@ -99,17 +99,17 @@ Baseline commit 0d265bcba90c55a67e409ab490fa709df09a1c82. Data snapshot: schema 
 | 92 | Detect high-stakes situations | OPEN | |
 | 93 | Route dangerous situations safely | OPEN | |
 | 94 | Set professional-advice boundaries | OPEN | |
-| 95 | Add ethical boundaries to Moves | OPEN | |
+| 95 | Add ethical boundaries to Moves | PARTIAL | Every Move has an ethicalBoundary; validator enforces fuller text for medium/high risk. |
 | 96 | Add privacy-first display behavior | OPEN | |
 | 97 | Add user data controls | OPEN | |
 | 98 | Add deletion safeguards | OPEN | |
-| 99 | Define one entitlement matrix | OPEN | |
+| 99 | Define one entitlement matrix | PARTIAL | ENTITLEMENTS matrix in product-facts.ts; not yet consumed by UI. |
 | 100 | Decide the actual free-analysis promise | OPEN | |
-| 101 | Reconcile Library access | OPEN | |
+| 101 | Reconcile Library access | PARTIAL | Free Moves fully public; Pro Move execution guidance returned only after server tier check. |
 | 102 | Upgrade old limited cases | OPEN | |
 | 103 | Define post-subscription access | OPEN | |
 | 104 | Prevent entitlement bypass | OPEN | |
-| 105 | Establish one source of truth for product facts | OPEN | |
+| 105 | Establish one source of truth for product facts | PARTIAL | product-facts.ts created. |
 | 106 | Update all marketing and product surfaces | OPEN | |
 | 107 | Remove unsupported claims | OPEN | |
 | 108 | Connect Today to canonical Moves | OPEN | |
@@ -133,7 +133,7 @@ Baseline commit 0d265bcba90c55a67e409ab490fa709df09a1c82. Data snapshot: schema 
 | 126 | Repair mobile editing/versioning | OPEN | |
 | 127 | Add safe product events | OPEN | |
 | 128 | Exclude sensitive content from analytics | OPEN | |
-| 129 | Catalog integrity tests | OPEN | |
+| 129 | Catalog integrity tests | PARTIAL | Integrity validator runnable; full 90 catalog pending. |
 | 130 | Recommendation tests | OPEN | |
 | 131 | Move Plan tests | OPEN | |
 | 132 | Saved workspace tests | OPEN | |
