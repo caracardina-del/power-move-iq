@@ -17,6 +17,7 @@ export type Database = {
       analyses: {
         Row: {
           chosen_move: string | null
+          classification: Json
           context: Json
           created_at: string
           id: string
@@ -30,6 +31,7 @@ export type Database = {
         }
         Insert: {
           chosen_move?: string | null
+          classification?: Json
           context?: Json
           created_at?: string
           id?: string
@@ -43,6 +45,7 @@ export type Database = {
         }
         Update: {
           chosen_move?: string | null
+          classification?: Json
           context?: Json
           created_at?: string
           id?: string
@@ -118,6 +121,100 @@ export type Database = {
         }
         Relationships: []
       }
+      move_plan_versions: {
+        Row: {
+          content: Json
+          created_at: string
+          id: string
+          note: string
+          plan_id: string
+          source: string
+          user_id: string
+          version: number
+        }
+        Insert: {
+          content: Json
+          created_at?: string
+          id?: string
+          note?: string
+          plan_id: string
+          source: string
+          user_id: string
+          version: number
+        }
+        Update: {
+          content?: Json
+          created_at?: string
+          id?: string
+          note?: string
+          plan_id?: string
+          source?: string
+          user_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "move_plan_versions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "move_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      move_plans: {
+        Row: {
+          analysis_id: string | null
+          archived_at: string | null
+          created_at: string
+          current_version: number
+          draft: Json | null
+          draft_saved_at: string | null
+          id: string
+          move_ref: string | null
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          analysis_id?: string | null
+          archived_at?: string | null
+          created_at?: string
+          current_version?: number
+          draft?: Json | null
+          draft_saved_at?: string | null
+          id?: string
+          move_ref?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          analysis_id?: string | null
+          archived_at?: string | null
+          created_at?: string
+          current_version?: number
+          draft?: Json | null
+          draft_saved_at?: string | null
+          id?: string
+          move_ref?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "move_plans_analysis_id_fkey"
+            columns: ["analysis_id"]
+            isOneToOne: false
+            referencedRelation: "analyses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       moves: {
         Row: {
           action_prompt: string
@@ -158,7 +255,10 @@ export type Database = {
         Row: {
           analysis_id: string
           chosen_move: string | null
+          chosen_move_ref: string | null
           id: string
+          lesson: string
+          move_plan_id: string | null
           outcome: Database["public"]["Enums"]["outcome_type"]
           recorded_at: string
           result_note: string
@@ -167,7 +267,10 @@ export type Database = {
         Insert: {
           analysis_id: string
           chosen_move?: string | null
+          chosen_move_ref?: string | null
           id?: string
+          lesson?: string
+          move_plan_id?: string | null
           outcome: Database["public"]["Enums"]["outcome_type"]
           recorded_at?: string
           result_note?: string
@@ -176,7 +279,10 @@ export type Database = {
         Update: {
           analysis_id?: string
           chosen_move?: string | null
+          chosen_move_ref?: string | null
           id?: string
+          lesson?: string
+          move_plan_id?: string | null
           outcome?: Database["public"]["Enums"]["outcome_type"]
           recorded_at?: string
           result_note?: string
@@ -188,6 +294,13 @@ export type Database = {
             columns: ["analysis_id"]
             isOneToOne: false
             referencedRelation: "analyses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outcomes_move_plan_id_fkey"
+            columns: ["move_plan_id"]
+            isOneToOne: false
+            referencedRelation: "move_plans"
             referencedColumns: ["id"]
           },
         ]
@@ -222,6 +335,30 @@ export type Database = {
           preferences?: Json
           subscription_tier?: Database["public"]["Enums"]["subscription_tier"]
           updated_at?: string
+        }
+        Relationships: []
+      }
+      saved_moves: {
+        Row: {
+          created_at: string
+          id: string
+          move_ref: string
+          move_version: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          move_ref: string
+          move_version?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          move_ref?: string
+          move_version?: number
+          user_id?: string
         }
         Relationships: []
       }
