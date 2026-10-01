@@ -1,20 +1,19 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { analysisSchema, type FullAnalysis } from "./moveiq-schema";
+import { anyGrantsPro } from "./billing-policy";
 
 export async function getTier(supabase: SupabaseClient<Database>, userId: string): Promise<"free" | "pro"> {
-  const { data } = await supabase.from("profiles").select("subscription_tier").eq("id", userId).maybeSingle();
-  if (data?.subscription_tier === "pro") return "pro";
-  // Fallback: a verified, still-active Stripe subscription row (written only by the signed webhook).
+  // Verified Stripe state (written only by the signed webhook) is authoritative when present,
+  // so a lapsed past_due subscription cannot keep Pro indefinitely via a stale profile flag.
   const { data: subs } = await supabase
     .from("stripe_subscriptions")
     .select("status, current_period_end")
-    .eq("user_id", userId)
-    .in("status", ["active", "trialing", "past_due"]);
-  const now = Date.now();
-  return (subs ?? []).some((s) => !s.current_period_end || new Date(s.current_period_end).getTime() > now - 3 * 86400000)
-    ? "pro"
-    : "free";
+    .eq("user_id", userId);
+  if (subs && subs.length) return anyGrantsPro(subs) ? "pro" : "free";
+  // No Stripe rows: fall back to the service-managed profile tier (clients cannot write it).
+  const { data } = await supabase.from("profiles").select("subscription_tier").eq("id", userId).maybeSingle();
+  return data?.subscription_tier === "pro" ? "pro" : "free";
 }
 
 const SYSTEM = `You are MOVE IQ, an educational decision-support analyst for professional and money situations (negotiations, pricing, salary, clients, boundaries).
