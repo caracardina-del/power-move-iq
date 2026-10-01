@@ -9,4 +9,4 @@ console.log(`Errors: ${errors.length}`);
 errors.forEach((e) => console.log(`  ERROR ${e.id}: ${e.message}`));
 console.log(`Pending: ${pending.length}`);
 pending.forEach((e) => console.log(`  PENDING ${e.id}: ${e.message}`));
-process.exit(errors.length ? 1 : 0);
+process.exit(errors.length || pending.length ? 1 : 0);

@@ -130,7 +130,7 @@ export const COMMITMENT: MoveInput[] = [
       { ifThey: "summarise differently", counter: "Thank them and resolve the difference immediately, before ending." },
       { ifThey: "summarise accurately", counter: "Confirm and send the written recap." },
     ],
-    secondMove: "After confirming, use Recap in Writing.",
+    secondMove: "After they confirm the agreement in their own words, use Recap in Writing to fix it on the record.",
     followUp: "Send the written recap within 24 hours.",
     mistakes: ["Asking in a tone that implies they weren't listening.", "Ignoring small differences in their summary."],
     ethicalBoundary: "Use this to check understanding, not to trap someone into a commitment they did not intend.",
