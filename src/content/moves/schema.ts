@@ -38,7 +38,7 @@ export const moveSchema = z.object({
     written: text(60),
     message: text(20).optional(),
   }),
-  reactions: z.array(z.object({ ifThey: text(8), counter: text(20) })).min(2),
+  reactions: z.array(z.object({ ifThey: text(4), counter: text(20) })).min(2),
   secondMove: text(40),
   followUp: text(30),
   mistakes: items(2),
