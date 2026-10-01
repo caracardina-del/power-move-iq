@@ -36,7 +36,8 @@ export const Route = createFileRoute("/library/")({
 });
 
 function Library() {
-  const moves = Route.useLoaderData();
+  const { moves, mode, total } = Route.useLoaderData();
+  const published = moves.filter((m) => !m.reviewDraft).length;
   const s = Route.useSearch();
   const nav = useNavigate({ from: "/library/" });
   const set = (patch: Partial<typeof s>) => void nav({ search: (p) => ({ ...p, ...patch }), replace: true });
@@ -58,10 +59,18 @@ function Library() {
   return (
     <div className="page-shell">
       <PageHeader
-        eyebrow={`THE LIBRARY · ${moves.length} OF ${TOTAL_MOVES} MOVES PUBLISHED`}
+        eyebrow={mode === "editorial_preview" ? `EDITORIAL PREVIEW · ${total} MOVES IN REVIEW · ${published} PUBLISHED` : `THE LIBRARY · ${published} OF ${TOTAL_MOVES} MOVES PUBLISHED`}
         title="The Move Library"
-        intro={`The Library is being built as ${PRODUCT.structure}. ${moves.length} Moves are available now; the rest are in authoring and will appear here as each is completed.`}
+        intro={`The Library is organised as ${PRODUCT.structure}.`}
       />
+      {mode === "editorial_preview" && (
+        <p role="note" className="mb-6 rounded border border-primary p-3 text-sm">
+          Review drafts. These Moves are written and checked automatically but have not been approved by a human editor. They are visible only in this unpublished preview and are not shown or recommended on the live site until published.
+        </p>
+      )}
+      {mode === "production" && published === 0 && (
+        <StatePanel title="The Library is being prepared." body="Moves appear here once they have passed editorial review." />
+      )}
       <form className="mb-6 grid gap-3 md:grid-cols-[2fr_repeat(3,1fr)]" role="search" onSubmit={(e) => e.preventDefault()}>
         <label className="sr-only" htmlFor="lib-q">Search Moves</label>
         <input id="lib-q" className={sel} placeholder="Search title, principle, situation…" value={s.q} onChange={(e) => set({ q: e.target.value })} />
@@ -102,7 +111,7 @@ function Library() {
           </button>
         )}
       </div>
-      {filtered.length === 0 ? (
+      {moves.length === 0 ? null : filtered.length === 0 ? (
         <StatePanel title="No Moves match." body="Try fewer words, or clear a filter. Not every category is fully authored yet.">
           <button type="button" className="underline" onClick={() => nav({ search: { q: "", cat: "", sit: "", goal: "", risk: "", access: "", sort: "number" } })}>Clear all filters</button>
         </StatePanel>
@@ -116,7 +125,7 @@ function Library() {
                 <p>{m.summary}</p>
                 <footer>
                   <span>{categoryLabel(m.category)}</span>
-                  <span>{m.access === "pro" ? "PRO" : "FREE"}</span>
+                  <span>{m.reviewDraft ? "REVIEW DRAFT · " : ""}{m.access === "pro" ? "PRO" : "FREE"}</span>
                 </footer>
               </Link>
             </li>
