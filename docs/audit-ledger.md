@@ -145,3 +145,11 @@ Baseline commit 0d265bcba90c55a67e409ab490fa709df09a1c82. Data snapshot: schema 
 | 138 | Visual and accessibility tests | OPEN | |
 | 139 | Homepage acceptance tests | OPEN | |
 | 140 | Final release gate | OPEN | |
+
+## Build 3 update (preview only)
+- Catalog: 90/90 parse, 0 errors, 0 pending (`bun ./scripts/validate-moves.ts`). All `in_review`; 0 published; production recommendations exclude in_review. No human review claimed. — VERIFIED (script)
+- Billing: past_due grants Pro only within 7 days of period end (`src/lib/billing-policy.ts`), used by getTier and webhook; Stripe rows authoritative over profile flag. Owner sub active, in period. — VERIFIED (typecheck + DB read); live webhook UNVERIFIED
+- Move Plans: create from full case, autosave draft separate from versions, optimistic version check, alternatives, restore-as-new-version, archive/restore, .txt export; Saved lists plans, canonical Moves, legacy favorites (unmapped). — IMPLEMENTED; signed-in browser test PENDING
+- Case page: classification correction (original text kept), archive/restore. — IMPLEMENTED; browser test PENDING
+- Routes smoke (HTTP 200 only, not functional): / /today /library /saved /plans/:id /analysis/sample /pricing.
+- Still open: Home showcase on canonical Moves, mobile/Pro functional QA, outcome→plan link UI, remaining phases.
