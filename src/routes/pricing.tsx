@@ -34,7 +34,7 @@ function Pricing() {
             <li>Basic streak tracking</li>
           </ul>
           <Button asChild variant="outline">
-            <Link to="/analyze">ANALYZE MY SITUATION</Link>
+            <Link to="/analyze" search={{ prompt: "" }}>ANALYZE MY SITUATION</Link>
           </Button>
         </div>
         <PricingCard />
