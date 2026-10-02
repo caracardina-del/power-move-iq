@@ -11,7 +11,7 @@ import { claimGuestAnalysis } from "@/lib/guest.functions";
 import { clearGuest, readGuest, type GuestResult } from "@/lib/guest-store";
 import { useNavigate } from "@tanstack/react-router";
 import { GOAL_OPTIONS, SITUATION_TYPES, type FullAnalysis, type LimitedAnalysis } from "@/lib/moveiq-schema";
-import { correctClassification, setCaseArchived } from "@/lib/moveiq.functions";
+import { correctClassification, setCaseArchived, saveCase } from "@/lib/moveiq.functions";
 import { createPlanFromCase } from "@/lib/plans.functions";
 
 export const Route = createFileRoute("/analysis/$caseId")({
@@ -296,7 +296,7 @@ function RealCase({ id }: { id: string }) {
           <span>{date}</span>
         </div>
         <p className="mt-6 max-w-2xl text-sm leading-7 text-muted-foreground">“{row.situation}”</p>
-        <CaseTools caseId={row.id} isPro={tier === "pro" && res.tier === "pro"} status={row.status} classification={row.classification} fallbackType={row.context.type} primaryRef={res.analysis.move_refs?.primary ?? null} onChange={load} />
+        <CaseTools caseId={row.id} isSaved={row.is_saved} isPro={tier === "pro" && res.tier === "pro"} status={row.status} classification={row.classification} fallbackType={row.context.type} primaryRef={res.analysis.move_refs?.primary ?? null} onChange={load} />
         {row.context.parent_id && (
           <p className="mt-3 text-xs">
             Follow-up to{" "}
@@ -341,8 +341,13 @@ function Limited({ a, tier }: { a: LimitedAnalysis; tier: "free" | "pro" }) {
   return (
     <>
       <ReadLayer a={a} n={1} />
-      <Layer n={2} k="THE MOVE™" title={a.move.headline}>
+      <Layer n={2} k="POWER MOVE" title={a.move.headline}>
         <p>{a.move.recommended}</p>
+        {a.move.rationale && <><p className="eyebrow mt-6">WHY THIS MOVE</p><p>{a.move.rationale}</p></>}
+        <Bullets label="DO THIS NOW" items={a.do_this_now ?? []} />
+        <Bullets label="WATCH OUT" items={a.watch_out ?? []} />
+        {(a.move.alternatives?.length ?? 0) > 0 && <><p className="eyebrow mt-6">OTHER PATH</p><Rows rows={a.move.alternatives.map(x => [x.option, x.tradeoff])} /></>}
+        {a.move.confidence_note && <div className="layer-callout"><strong>CONFIDENCE: </strong>{a.move.confidence_note}</div>}
       </Layer>
       <Layer n={3} k="DON’T DO THIS™" title={a.dont_do.action} tone="warning">
         <p>{a.dont_do.why}</p>
@@ -355,8 +360,8 @@ function Limited({ a, tier }: { a: LimitedAnalysis; tier: "free" | "pro" }) {
         <div className="layer-content">
           <h2>The rest of the read is included with Pro.</h2>
           <p>
-            Counterpart IQ, Power Map, alternatives, Script Modes, Countermoves, The Second Move,
-            The Precedent, Exit Line, saved cases, and Outcome Memory.
+            Counterpart IQ, Power Map, Script Modes, Countermoves, The Second Move,
+            Exit Line and Outcome Memory. You can save this case with your free account.
           </p>
           {tier === "pro" ? (
             <p className="mt-4 text-sm">
@@ -417,16 +422,18 @@ function Full({
         <Bullets label="CONSTRAINTS" items={a.power_map.constraints} />
         <Bullets label="UNKNOWNS" items={a.power_map.unknowns} />
       </Layer>
-      <Layer n={n++} k="THE MOVE™" title={a.move.headline}>
+      <Layer n={n++} k="POWER MOVE" title={a.move.headline}>
         <p>{a.move.recommended}</p>
-        {a.move.rationale && <p className="mt-4">{a.move.rationale}</p>}
+        {a.move.rationale && <><p className="eyebrow mt-6">WHY THIS MOVE</p><p>{a.move.rationale}</p></>}
+        <Bullets label="DO THIS NOW" items={a.do_this_now ?? []} />
+        <Bullets label="WATCH OUT" items={a.watch_out ?? []} />
         {a.move.alternatives.length > 0 && (
           <>
-            <p className="eyebrow mt-6">ALTERNATIVES & TRADEOFFS</p>
+            <p className="eyebrow mt-6">OTHER PATH</p>
             <Rows rows={a.move.alternatives.map((x) => [x.option, x.tradeoff])} />
           </>
         )}
-        {a.move.confidence_note && <div className="layer-callout">{a.move.confidence_note}</div>}
+        {a.move.confidence_note && <div className="layer-callout"><strong>CONFIDENCE: </strong>{a.move.confidence_note}</div>}
       </Layer>
       <Layer n={n++} k="SCRIPT MODES™" title="The same strategy, three registers.">
         <Rows
@@ -469,17 +476,10 @@ function Full({
             ]}
           />
           <p className="mt-4 text-xs text-muted-foreground">
-            AI-selected precedent. Verify historical details independently before relying on them.
+            Your recorded outcome from a related case. Similar situations can still produce different results.
           </p>
         </Layer>
-      ) : (
-        <Layer n={n++} k="THE PRECEDENT™" title="No precedent offered.">
-          <p>
-            {a.precedent.omitted_reason ||
-              "No sufficiently well-documented parallel was found, so none is offered rather than guessing."}
-          </p>
-        </Layer>
-      )}
+      ) : null}
       <Layer
         n={n++}
         k="EXIT LINE™"
@@ -628,14 +628,15 @@ function OutcomeForm({
   );
 }
 
-function CaseTools({ caseId, isPro, status, classification, fallbackType, primaryRef, onChange }: {
-  caseId: string; isPro: boolean; status: string; classification: { situation?: string; goal?: string; corrected_at?: string };
+function CaseTools({ caseId, isSaved, isPro, status, classification, fallbackType, primaryRef, onChange }: {
+  caseId: string; isSaved: boolean; isPro: boolean; status: string; classification: { situation?: string; goal?: string; corrected_at?: string };
   fallbackType?: string | undefined; primaryRef: string | null; onChange: () => void;
 }) {
   const navigate = useNavigate();
   const mkPlan = useServerFn(createPlanFromCase);
   const correct = useServerFn(correctClassification);
   const archive = useServerFn(setCaseArchived);
+  const save = useServerFn(saveCase);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   const [editing, setEditing] = useState(false);
@@ -648,6 +649,7 @@ function CaseTools({ caseId, isPro, status, classification, fallbackType, primar
   };
   return (
     <div className="mt-6 flex flex-wrap items-center gap-3 text-sm">
+      <Button size="sm" disabled={busy || isSaved} onClick={() => run(() => save({ data: { id: caseId } }), "Case saved to your account.")}>{isSaved ? "CASE SAVED" : "SAVE CASE"}</Button>
       {isPro && status !== "archived" && (
         <Button size="sm" disabled={busy} onClick={async () => {
           if (busy) return; setBusy(true); setMsg("");

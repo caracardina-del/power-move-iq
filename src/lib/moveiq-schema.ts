@@ -38,6 +38,8 @@ export const analysisSchema = z.object({
     alternatives: z.array(z.object({ option: z.string(), tradeoff: z.string() })).default([]),
     confidence_note: z.string().default(""),
   }),
+  do_this_now: list,
+  watch_out: list,
   scripts: z.object({ diplomatic: z.string(), direct: z.string(), hard_line: z.string() }),
   countermoves: z.array(z.object({ if_they: z.string(), consider: z.string() })).default([]),
   second_move: z.object({
@@ -73,7 +75,9 @@ export type FullAnalysis = z.infer<typeof analysisSchema>;
 export type LimitedAnalysis = Pick<FullAnalysis, "title" | "read" | "dont_do"> & {
   move_refs?: FullAnalysis["move_refs"];
   inferred?: FullAnalysis["inferred"];
-  move: Pick<FullAnalysis["move"], "headline" | "recommended">;
+  move: FullAnalysis["move"];
+  do_this_now?: string[];
+  watch_out?: string[];
 };
 
 export type StoredResult =
@@ -84,7 +88,9 @@ export function limit(a: FullAnalysis): LimitedAnalysis {
     title: a.title,
     read: a.read,
     dont_do: a.dont_do,
-    move: { headline: a.move.headline, recommended: a.move.recommended },
+    move: a.move,
+    do_this_now: a.do_this_now,
+    watch_out: a.watch_out,
     move_refs: { primary: a.move_refs.primary, alternatives: [] },
     inferred: a.inferred,
   };

@@ -11,6 +11,7 @@ import {
   type StoredResult,
 } from "./moveiq-schema";
 import { candidatesFor } from "./moves.server";
+import { selectOutcomePrecedent } from "./outcome-precedent";
 import { AnalysisError, generateAnalysis, getTier } from "./moveiq.server";
 
 function monthStart() {
@@ -68,7 +69,7 @@ export const runAnalysis = createServerFn({ method: "POST" })
       const { data: parent } = await supabase
         .from("analyses")
         .select("situation, result, context")
-        .eq("id", data.parentId)
+        .eq("id", data.parentId).eq("user_id", userId)
         .maybeSingle();
       if (!parent) return { ok: false as const, error: "Original case not found." };
       const pc = (parent.context ?? {}) as { type?: string; urgency?: string };
@@ -80,7 +81,11 @@ export const runAnalysis = createServerFn({ method: "POST" })
     }
     try {
       const candidates = candidatesFor(data.type, data.goal).map((m) => ({ id: m.id, title: m.title, principle: m.principle }));
-      const { grounding, ...full } = await generateAnalysis({ ...data, prior, candidates });
+      const { data: history, error: historyError } = await supabase.from("outcomes")
+        .select("id, analysis_id, outcome, chosen_move, result_note, recorded_at, analyses(situation, context, status)")
+        .eq("user_id", userId).order("recorded_at", { ascending: false }).limit(50);
+      const precedent = historyError ? undefined : selectOutcomePrecedent(data, history ?? []);
+      const { grounding, ...full } = await generateAnalysis({ ...data, prior, candidates, precedent });
       const stored: StoredResult =
         tier === "pro" ? { tier: "pro", analysis: full } : { tier: "free", analysis: limit(full) };
       const { data: row, error } = await supabase
@@ -127,14 +132,14 @@ export const getCase = createServerFn({ method: "GET" })
     const tier = await getTier(context.supabase, context.userId);
     const { data: row } = await context.supabase
       .from("analyses")
-      .select("id, title, situation, context, result, chosen_move, created_at, status, classification")
-      .eq("id", data.id)
+      .select("id, title, situation, context, result, chosen_move, created_at, status, classification, is_saved")
+      .eq("id", data.id).eq("user_id", context.userId)
       .maybeSingle();
     if (!row) return { tier, found: false as const };
     const { data: outcomes } = await context.supabase
       .from("outcomes")
       .select("id, outcome, chosen_move, chosen_move_ref, move_plan_id, result_note, lesson, recorded_at")
-      .eq("analysis_id", data.id)
+      .eq("analysis_id", data.id).eq("user_id", context.userId)
       .order("recorded_at", { ascending: false });
     return {
       tier,
@@ -165,6 +170,9 @@ export const recordOutcome = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     if ((await getTier(supabase, userId)) !== "pro")
       return { ok: false as const, error: "Outcome Memory is included with Pro." };
+    const { data: ownedCase, error: caseError } = await supabase.from("analyses").select("id")
+      .eq("id", data.analysisId).eq("user_id", userId).maybeSingle();
+    if (caseError || !ownedCase) return { ok: false as const, error: "Case not found in your account." };
     const { error } = await supabase
       .from("outcomes")
       .insert({
@@ -188,7 +196,8 @@ export const listCases = createServerFn({ method: "GET" })
     const tier = await getTier(context.supabase, context.userId);
     const { data } = await context.supabase
       .from("analyses")
-      .select("id, title, situation, context, created_at, status, outcomes(outcome), move_plans(id)")
+      .select("id, title, situation, context, created_at, status, is_saved, outcomes(outcome), move_plans(id)")
+      .eq("user_id", context.userId)
       .order("created_at", { ascending: false })
       .limit(100);
     return {
@@ -205,6 +214,7 @@ export const getOutcomeMemory = createServerFn({ method: "GET" })
     const { data } = await context.supabase
       .from("outcomes")
       .select("id, outcome, chosen_move, result_note, recorded_at, analyses(id, title, created_at)")
+      .eq("user_id", context.userId)
       .order("recorded_at", { ascending: false });
     const rows = data ?? [];
     const total = rows.length;
@@ -326,4 +336,13 @@ export const setCaseArchived = createServerFn({ method: "POST" })
       .eq("id", data.id);
     if (error || !count) return { ok: false as const, error: "Could not update this case." };
     return { ok: true as const };
+  });
+
+export const saveCase = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { error, count } = await context.supabase.from("analyses")
+      .update({ is_saved: true }, { count: "exact" }).eq("id", data.id).eq("user_id", context.userId);
+    return error || !count ? { ok: false as const, error: "Case could not be saved. Please retry." } : { ok: true as const };
   });
