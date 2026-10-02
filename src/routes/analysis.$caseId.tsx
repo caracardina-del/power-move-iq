@@ -147,9 +147,9 @@ function GuestCase() {
       setBusy(false);
     }
   }
-  function toAuth() {
+  function toAuth(mode: "in" | "up") {
     window.sessionStorage.setItem("pmiq:return-after-auth", "claim");
-    void nav({ to: "/auth" });
+    void nav({ to: "/auth", search: { mode } });
   }
   if (g === undefined)
     return (
@@ -197,8 +197,8 @@ function GuestCase() {
               </Button>
             ) : (
               <>
-                <Button onClick={toAuth} disabled={!ready}>CREATE FREE ACCOUNT TO SAVE</Button>
-                <Button variant="ghost" onClick={toAuth} disabled={!ready}>
+                <Button onClick={() => toAuth("up")} disabled={!ready}>CREATE FREE ACCOUNT TO SAVE</Button>
+                <Button variant="ghost" onClick={() => toAuth("in")} disabled={!ready}>
                   I HAVE AN ACCOUNT
                 </Button>
               </>

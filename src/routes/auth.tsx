@@ -12,6 +12,9 @@ const RETURN_KEY = "pmiq:return-after-auth";
 const RESUME_KEY = "pmiq:resume-analysis";
 
 export const Route = createFileRoute("/auth")({
+  validateSearch: (search: Record<string, unknown>): { mode?: "in" | "up" } => (
+    search["mode"] === "in" || search["mode"] === "up" ? { mode: search["mode"] } : {}
+  ),
   head: () => ({
     meta: [
       { title: "Sign in — Power Move IQ" },
@@ -37,7 +40,8 @@ function getReturnIntent() {
 }
 
 function Auth() {
-  const [mode, setMode] = useState<"in" | "up" | "reset">(() => (getReturnIntent() ? "up" : "in"));
+  const search = Route.useSearch();
+  const [mode, setMode] = useState<"in" | "up" | "reset">(() => search.mode ?? (getReturnIntent() ? "up" : "in"));
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
