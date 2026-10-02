@@ -72,11 +72,13 @@ export const runAnalysis = createServerFn({ method: "POST" })
         .eq("id", data.parentId).eq("user_id", userId)
         .maybeSingle();
       if (!parent) return { ok: false as const, error: "Original case not found." };
-      const pc = (parent.context ?? {}) as { type?: string; urgency?: string };
+      const pc = (parent.context ?? {}) as { type?: string; urgency?: string; goal?: string };
       const t = SITUATION_TYPES.find((x) => x === pc.type);
       const u = URGENCIES.find((x) => x === pc.urgency);
       if (t) data.type = t;
       if (u) data.urgency = u;
+      const goal = GOAL_IDS_INTAKE.find((x) => x === pc.goal);
+      if (goal) data.goal = goal;
       prior = `Original situation: ${parent.situation}\nPrior recommendation: ${JSON.stringify((parent.result as { analysis?: { move?: unknown } })?.analysis?.move ?? {})}\nWhat happened since: ${data.update ?? ""}`;
     }
     try {
@@ -186,7 +188,7 @@ export const recordOutcome = createServerFn({ method: "POST" })
     await supabase
       .from("analyses")
       .update({ chosen_move: data.chosenMove })
-      .eq("id", data.analysisId);
+      .eq("id", data.analysisId).eq("user_id", userId);
     return { ok: true as const };
   });
 
@@ -320,7 +322,7 @@ export const correctClassification = createServerFn({ method: "POST" })
     const { error, count } = await context.supabase
       .from("analyses")
       .update({ classification: { situation: data.situation, goal: data.goal, corrected_at: new Date().toISOString() } as Json }, { count: "exact" })
-      .eq("id", data.id);
+      .eq("id", data.id).eq("user_id", context.userId);
     if (error || !count) return { ok: false as const, error: "The correction could not be saved." };
     return { ok: true as const };
   });
@@ -333,7 +335,7 @@ export const setCaseArchived = createServerFn({ method: "POST" })
     const { error, count } = await context.supabase
       .from("analyses")
       .update({ status: data.archived ? "archived" : "complete" }, { count: "exact" })
-      .eq("id", data.id);
+      .eq("id", data.id).eq("user_id", context.userId);
     if (error || !count) return { ok: false as const, error: "Could not update this case." };
     return { ok: true as const };
   });
