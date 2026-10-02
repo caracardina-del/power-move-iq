@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowRight, ShieldCheck } from "lucide-react";
+import { ArrowRight, LoaderCircle, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/power/shell";
 import { situations } from "@/lib/power-move-data";
@@ -49,6 +49,13 @@ function Analyze() {
   const [hydrated, setHydrated] = useState(false);
   const [pendingQuick, setPendingQuick] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
+  useEffect(() => {
+    if (!loading) { setElapsed(0); return; }
+    const started = Date.now();
+    const timer = window.setInterval(() => setElapsed(Math.floor((Date.now() - started) / 1000)), 1000);
+    return () => window.clearInterval(timer);
+  }, [loading]);
   const [error, setError] = useState("");
   const [needsAccount, setNeedsAccount] = useState(false);
   const [ent, setEnt] = useState<Ent | null>(null);
@@ -256,9 +263,16 @@ function Analyze() {
             </select>
           </div>
           <Button size="lg" onClick={submit} disabled={loading || !ready} aria-busy={loading}>
-            {loading ? "MAPPING THE SITUATION…" : error && !needsAccount ? "RETRY" : "ANALYZE MY SITUATION"}{" "}
+            {loading && <LoaderCircle className="animate-spin motion-reduce:animate-none" aria-hidden="true" />}
+            {loading ? "ANALYZING YOUR SITUATION…" : error && !needsAccount ? "RETRY" : "ANALYZE MY SITUATION"}{" "}
             {!loading && <ArrowRight />}
           </Button>
+          {loading && (
+            <div className="mt-4 border border-primary/40 p-4" role="status" aria-live="polite" aria-atomic="true">
+              <p className="text-sm text-foreground">{elapsed < 30 ? "Your analysis is running. You can stay on this page while PMIQ prepares your recommendation." : "Still working on your analysis. Some situations take longer; please keep this page open."}</p>
+              <p className="mt-2 text-xs text-muted-foreground" aria-live="off">{elapsed}s elapsed · Your situation is preserved. No need to submit again.</p>
+            </div>
+          )}
           {!user && ready && (
             <p className="mt-3 text-xs text-muted-foreground">
               Your first analysis is free — no account needed. Create a free account afterward to save it.
