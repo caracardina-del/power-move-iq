@@ -185,11 +185,11 @@ export const recordOutcome = createServerFn({ method: "POST" })
         result_note: data.note,
       });
     if (error) return { ok: false as const, error: "The outcome could not be saved." };
-    await supabase
+    const { error: moveError } = await supabase
       .from("analyses")
       .update({ chosen_move: data.chosenMove })
       .eq("id", data.analysisId).eq("user_id", userId);
-    return { ok: true as const };
+    return { ok: true as const, warning: moveError ? "Outcome recorded. The case’s chosen move could not be updated; your recorded outcome is saved. Refresh before continuing." : undefined };
   });
 
 export const listCases = createServerFn({ method: "GET" })

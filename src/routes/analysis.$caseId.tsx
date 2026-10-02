@@ -527,13 +527,14 @@ function OutcomeForm({
   const [busy, setBusy] = useState(false);
   const [update, setUpdate] = useState("");
   async function save(outcome: "accepted" | "negotiated" | "declined" | "ghosted" | "other") {
+    if (busy) return;
     setBusy(true);
     setMsg("");
     try {
       const r = await rec({ data: { analysisId: caseId, outcome, chosenMove: move, note } });
       if (r.ok) {
         setNote("");
-        setMsg("Outcome recorded.");
+        setMsg(r.warning ?? "Outcome recorded.");
         onSaved();
       } else setMsg(r.error);
     } catch {
@@ -543,6 +544,7 @@ function OutcomeForm({
     }
   }
   async function runFollow() {
+    if (busy) return;
     if (update.trim().length < 40) {
       setMsg("Describe what happened in at least 40 characters.");
       return;
@@ -643,9 +645,10 @@ function CaseTools({ caseId, isSaved, isPro, status, classification, fallbackTyp
   const [sit, setSit] = useState(classification.situation ?? fallbackType ?? "Other");
   const [goal, setGoal] = useState<string>(classification.goal ?? "");
   const run = async (fn: () => Promise<{ ok: boolean; error?: string }>, done?: string) => {
-    if (busy) return; setBusy(true); setMsg("");
-    try { const r = await fn(); if (!r.ok) setMsg(r.error ?? "Something went wrong."); else { if (done) setMsg(done); onChange(); } }
-    catch { setMsg("Network problem — please try again."); } finally { setBusy(false); }
+    if (busy) return false; setBusy(true); setMsg("");
+    try { const r = await fn(); if (!r.ok) { setMsg(r.error ?? "Something went wrong."); return false; }
+      if (done) setMsg(done); onChange(); return true; }
+    catch { setMsg("Network problem — please try again."); return false; } finally { setBusy(false); }
   };
   return (
     <div className="mt-6 flex flex-wrap items-center gap-3 text-sm">
@@ -665,7 +668,7 @@ function CaseTools({ caseId, isSaved, isPro, status, classification, fallbackTyp
         <div className="grid w-full gap-2 rounded border border-border p-3 sm:grid-cols-[1fr_1fr_auto]">
           <label className="grid gap-1 text-xs">Situation<select className="field" value={sit} onChange={(e) => setSit(e.target.value)}>{SITUATION_TYPES.map((t) => <option key={t}>{t}</option>)}</select></label>
           <label className="grid gap-1 text-xs">Goal<select className="field" value={goal} onChange={(e) => setGoal(e.target.value)}><option value="">Not specified</option>{GOAL_OPTIONS.map(([id, l]) => <option key={id} value={id}>{l}</option>)}</select></label>
-          <Button size="sm" className="self-end" disabled={busy} onClick={() => run(() => correct({ data: { id: caseId, situation: sit as (typeof SITUATION_TYPES)[number], goal: goal || null } }), "Correction saved. Your original text is unchanged.").then(() => setEditing(false))}>SAVE</Button>
+          <Button size="sm" className="self-end" disabled={busy} onClick={() => run(() => correct({ data: { id: caseId, situation: sit as (typeof SITUATION_TYPES)[number], goal: goal || null } }), "Correction saved. Your original text is unchanged.").then((saved) => { if (saved) setEditing(false); })}>SAVE</Button>
         </div>
       )}
       {msg && <p role="status" className="w-full text-xs">{msg}</p>}
