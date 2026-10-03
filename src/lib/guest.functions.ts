@@ -102,6 +102,8 @@ export const claimGuestAnalysis = createServerFn({ method: "POST" })
     const { data: row, error } = await context.supabase
       .from("analyses")
       .insert({
+        // The guest UUID is also the case UUID: concurrent claims can insert only one case.
+        id: g.id,
         user_id: context.userId,
         title: stored.analysis.title,
         situation: g.situation,
@@ -111,11 +113,26 @@ export const claimGuestAnalysis = createServerFn({ method: "POST" })
       })
       .select("id")
       .single();
-    if (error || !row) return { ok: false as const, error: "Your free result could not be saved. Please try again." };
-    await supabaseAdmin
+    let savedId = row?.id;
+    if (error) {
+      if (error.code !== "23505") return { ok: false as const, error: "Your free result could not be saved. Please try again." };
+      // A retry can recover a previous insert, but never another user’s case.
+      const { data: existing } = await context.supabase.from("analyses").select("id")
+        .eq("id", g.id).eq("user_id", context.userId).maybeSingle();
+      savedId = existing?.id;
+    }
+    if (!savedId) return { ok: false as const, error: "Your free result could not be saved to this account." };
+    const { error: claimError, data: claimed } = await supabaseAdmin
       .from("guest_analyses")
-      .update({ claimed_by: context.userId, claimed_analysis_id: row.id })
+      .update({ claimed_by: context.userId, claimed_analysis_id: savedId })
       .eq("id", g.id)
-      .is("claimed_by", null);
-    return { ok: true as const, id: row.id };
+      .is("claimed_by", null).select("claimed_by, claimed_analysis_id").maybeSingle();
+    if (claimError) return { ok: false as const, error: "Your case was saved, but linking the guest result needs a retry. Your result is preserved." };
+    if (!claimed) {
+      const { data: finalized } = await supabaseAdmin.from("guest_analyses")
+        .select("claimed_by, claimed_analysis_id").eq("id", g.id).maybeSingle();
+      if (finalized?.claimed_by !== context.userId || finalized.claimed_analysis_id !== savedId)
+        return { ok: false as const, error: "The guest result could not be linked to this account. Please retry." };
+    }
+    return { ok: true as const, id: savedId };
   });
